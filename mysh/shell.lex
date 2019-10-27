@@ -8,8 +8,21 @@
 
 /* STATEs here */
 
+WS              [ \t\r]
+
+%x              STRING
+
 %%
+
 %{
 %}
+
+"<"
+">"
+">>"
+""
+
+{WS}+           /* whitespace */
+
 
 %%
