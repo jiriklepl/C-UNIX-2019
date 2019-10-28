@@ -3,6 +3,7 @@
         "MYSH",
         "NSWI",
         "cpplint",
+        "jiriklepl",
         "yyerror"
     ],
     "C_Cpp.default.cStandard": "c11"
