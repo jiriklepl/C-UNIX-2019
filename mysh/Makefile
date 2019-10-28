@@ -37,7 +37,7 @@ LINK = $(CC) $(C_FLAGS) -o$@ $^
 all: $(BIN) $(TEMP) $(BISON_FILES) $(FLEX_FILE) $(BIN)/$(EXECUTABLE)
 
 clean:
-	$(RM) $(BIN)/$(EXECUTABLE) $(wildcard $(TEMP)/*)
+	$(RM) $(wildcard $(BIN)/*) $(wildcard $(TEMP)/*)
 
 run: all
 	./$(BIN)/$(EXECUTABLE)
