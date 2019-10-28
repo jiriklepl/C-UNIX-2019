@@ -1,6 +1,8 @@
 {
     "cSpell.words": [
         "MYSH",
-        "NSWI"
-    ]
+        "NSWI",
+        "cpplint"
+    ],
+    "C_Cpp.default.cStandard": "c11"
 }

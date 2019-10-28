@@ -4,5 +4,14 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"cpplint.root": "${workspaceFolder}/mysh/include",
+		"cpplint.languages": [
+			"c"
+		],
+		"files.associations": {
+			"*.h": "c",
+			"*.c": "c"
+		}
+	}
 }
