@@ -13,16 +13,18 @@ YY_DECL;
 typedef struct value_t {
     enum _type_t {
         str_t,
+        str_list_t,
         error_t,
     } _type;
 
     union _value_t {
         char* str;
+        // TODO: str_list_t
     } _value;
 } value_t;
 
-void value_t_free(value_t *value);
-value_t value_t_assign(enum _type_t type, union _value_t value);
+void value_t_free(value_t value);
+value_t value_t_str(const char*);
 
 int yyerror(char*);
 
