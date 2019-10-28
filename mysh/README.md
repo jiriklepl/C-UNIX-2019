@@ -4,7 +4,15 @@ This is my solution to the assignment for **Unix/Linux Programming in C (NSWI015
 
 The assignment can be found [here](https://devnull-cz.github.io/unix-linux-prog-in-c/class-assignments/labs-assignment-2018.txt).
 
-## Supported shell commands
+## How to Build
+
+Just run the makefile:
+
+```bash
+make
+```
+
+## Supported Shell Commands
 
 - cd
 - exit
