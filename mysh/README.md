@@ -6,10 +6,22 @@ The assignment can be found [here](https://devnull-cz.github.io/unix-linux-prog-
 
 ## How to Build
 
-Just run the makefile:
+Just run the makefile: (supports gcc and clang)
 
 ```bash
 make
+```
+
+Build with a compiler of your choice: (e.g. gcc)
+
+```bash
+make CC=gcc
+```
+
+Build a debug version:
+
+```bash
+make debug
 ```
 
 ## Supported Shell Commands
