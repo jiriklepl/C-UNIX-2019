@@ -12,6 +12,8 @@
 		"files.associations": {
 			"*.h": "c",
 			"*.c": "c"
-		}
+		},
+		"files.trimTrailingWhitespace": true,
+		"files.insertFinalNewline": true,
 	}
 }
