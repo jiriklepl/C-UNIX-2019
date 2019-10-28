@@ -6,7 +6,9 @@
 
 %code requires
 {
-    #include "shell.h"
+    #include <stdio.h>
+
+    #include "shell-common.h"
     YYSTYPE yylval;
 }
 
@@ -18,11 +20,10 @@ request
     ;
 
 command
-    : STRING
+    : STRING { printf("%s", $1._value.str); value_t_free($1); }
+    | command STRING { printf("%s", $2._value.str); value_t_free($2); }
     ;
 %%
-
-#include <stdio.h>
 
 int main(void) {
     return yyparse();
