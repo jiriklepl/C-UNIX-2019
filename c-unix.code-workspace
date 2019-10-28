@@ -9,6 +9,10 @@
 		"cpplint.languages": [
 			"c"
 		],
+		"cpplint.excludes": [
+			"${workspaceFolder}/mysh/tmp"
+		],
+		"files.eol": "\n",
 		"files.associations": {
 			"*.h": "c",
 			"*.c": "c"
