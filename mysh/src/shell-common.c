@@ -2,7 +2,9 @@
 
 void value_t_free(value_t value) {
     if (value._type == str_t) {
-        free(value._value.str);
+        if (value._value.str != NULL) {
+            free(value._value.str);
+        }
     }
 }
 
