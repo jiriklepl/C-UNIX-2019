@@ -18,22 +18,24 @@ WS              [ \t\r]
 %{
 %}
 
+cd              return CD;
+exit            return EXIT;
+
 "<"             return LARROW;
 ">"             return RARROW;
 ">>"            return DRARROW;
 
 "|"             return PIPE;
+";"             return SEMICOLON;
 
 "{"             return LBRACE;
 "}"             return RBRACE;
 
 {WS}+           /* whitespace */
 
-[A-Za-z0-9]+ {
-    yylval = value_t_str(yytext);
+\n              return NLINE;
 
-    return STRING;
-}
+[A-Za-z0-9]+    return STRING;
 
 <<EOF>>         return EOF;
 
