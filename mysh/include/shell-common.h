@@ -1,5 +1,5 @@
-#ifndef SHELL_H_
-#define SHELL_H_
+#ifndef SHELL_COMMON_H_
+#define SHELL_COMMON_H_
 
 #include <stdlib.h>
 #include <string.h>
@@ -19,7 +19,7 @@ typedef struct value_t {
 
     union _value_t {
         char* str;
-        // TODO: str_list_t
+        // TODO(jiriklepl): str_list_t
     } _value;
 } value_t;
 
@@ -28,4 +28,4 @@ value_t value_t_str(const char*);
 
 int yyerror(char*);
 
-#endif  // SHELL_H_
+#endif  // SHELL_COMMON_H_
