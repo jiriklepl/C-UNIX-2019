@@ -1,5 +1,7 @@
-CC      := gcc
-C_FLAGS := -std=c11 -Wall -Wextra -Wpedantic -g
+C_FLAGS := -std=c11 -Wall -Wextra -Wpedantic
+
+RELEASE_FLAGS := -O2 -march=native -DNDEBUG
+DEBUG_FLAGS   := -g -DDEBUG
 
 BIN     := bin
 SRC     := src
@@ -32,15 +34,21 @@ COMPILE = $(CC) -c $(C_FLAGS) -I$(INCLUDE) -o$@ $<
 LINK = $(CC) $(C_FLAGS) -o$@ $^
 
 
-.PHONY: all clean run
+.PHONY: all clean run debug release
 
-all: $(BIN) $(TEMP) $(BISON_FILES) $(FLEX_FILE) $(BIN)/$(EXECUTABLE)
+all: release
+
+release: C_FLAGS += $(RELEASE_FLAGS)
+release: $(BIN) $(TEMP) $(BISON_FILES) $(FLEX_FILE) $(BIN)/$(EXECUTABLE)
+
+debug: C_FLAGS += $(DEBUG_FLAGS)
+debug: $(BIN) $(TEMP) $(BISON_FILES) $(FLEX_FILE) $(BIN)/$(EXECUTABLE)
 
 clean:
 	$(RM) $(wildcard $(BIN)/*) $(wildcard $(TEMP)/*)
 
 run: all
-	./$(BIN)/$(EXECUTABLE)
+	$(BIN)/$(EXECUTABLE)
 
 
 $(BIN):
