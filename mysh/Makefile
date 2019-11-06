@@ -22,7 +22,6 @@ BISON_SRC := $(TEMP)/shell.tab.c
 BISON_COMMAND := bison --defines=$(TEMP)/shell.tab.h --output=$(BISON_SRC) $(SRC)/shell.y
 
 FLEX_FILE := $(TEMP)/shell.l.c
-
 FLEX_COMMAND := flex -o$(FLEX_FILE) $(SRC)/shell.lex
 
 
@@ -31,7 +30,7 @@ OBJ_FILES = $(patsubst $(SRC)/%.c,$(TEMP)/%.o,$(patsubst $(TEMP)/%.c,$(TEMP)/%.o
 
 COMPILE = $(CC) -c $(C_FLAGS) -I$(INCLUDE) -o$@ $<
 
-LINK = $(CC) $(C_FLAGS) -o$@ $^
+LINK_COMMAND = $(CC) $(C_FLAGS) -o$@ $^
 
 
 .PHONY: all clean run debug release
@@ -63,11 +62,11 @@ $(TEMP)/%.o: $(SRC)/%.c $(wildcard $(INCLUDE)/*)
 $(TEMP)/%.o: $(TEMP)/%.c $(wildcard $(INCLUDE)/*)
 	$(COMPILE)
 
-$(BISON_FILES): $(SRC)/shell.y
+$(BISON_FILES): $(SRC)/shell.y $(INCLUDE)/shell-common.h
 	$(BISON_COMMAND)
 
-$(FLEX_FILE): $(SRC)/shell.lex
+$(FLEX_FILE): $(SRC)/shell.lex $(INCLUDE)/shell-common.h
 	$(FLEX_COMMAND)
 
 $(BIN)/$(EXECUTABLE): $(OBJ_FILES)
-	$(LINK)
+	$(LINK_COMMAND)
