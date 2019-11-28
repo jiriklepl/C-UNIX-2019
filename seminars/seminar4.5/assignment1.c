@@ -14,7 +14,7 @@ int main(void) {
     pid_t pid, me;
     int status;
 
-dochildren:
+do_children:
     while ((me = fork()) > 0 && i++ < N) {
         // parent loop
 
@@ -24,7 +24,7 @@ dochildren:
 
     if (me == 0 && (pid = wait(&status))) {
         printf("Terminated %i with %i exit", (int)pid, WEXITSTATUS(status));
-        goto dochildren;
+        goto do_children;
     }
 
     for (;;) {
