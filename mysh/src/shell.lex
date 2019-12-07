@@ -27,7 +27,8 @@ exit            return EXIT;
 
 "|"             return PIPE;
 ";"             return SEMICOLON;
-";;"            return SEMICOLONIAL;
+";;"            return SEMBICOLON;
+
 "&"             return AMPERSAND; /* NOT SUPPORTED, JUST PA[RS]SING */
 "$"             return DOLLAR; /* NOT SUPPORTED, JUST PA[RS]SING */
 
