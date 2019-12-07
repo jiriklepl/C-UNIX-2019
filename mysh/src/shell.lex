@@ -27,6 +27,9 @@ exit            return EXIT;
 
 "|"             return PIPE;
 ";"             return SEMICOLON;
+";;"            return SEMICOLONIAL;
+"&"             return AMPERSAND; /* NOT SUPPORTED, JUST PA[RS]SING */
+"$"             return DOLLAR; /* NOT SUPPORTED, JUST PA[RS]SING */
 
 "{"             return LBRACE;
 "}"             return RBRACE;
@@ -35,7 +38,7 @@ exit            return EXIT;
 
 \n              return NLINE;
 
-[A-Za-z0-9]+    return STRING;
+[A-Za-z0-9/]+   return STRING;
 
 <<EOF>>         return EOF;
 
