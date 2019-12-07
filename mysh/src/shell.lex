@@ -13,6 +13,7 @@
 WS              [ \t\r]
 
 /* STATEs here */
+
 %%
 
 %{
@@ -39,7 +40,7 @@ exit            return EXIT;
 
 \n              return NLINE;
 
-[A-Za-z0-9/]+   return STRING;
+[A-Za-z0-9/-]+  return STRING;
 
 <<EOF>>         return EOF;
 
