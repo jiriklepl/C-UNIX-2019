@@ -11,9 +11,9 @@ TEMP    := tmp
 
 
 ifeq ($(OS),Windows_NT)
-EXECUTABLE  := main.exe
+EXECUTABLE  := mysh.exe
 else
-EXECUTABLE  := main
+EXECUTABLE  := mysh
 endif
 
 
