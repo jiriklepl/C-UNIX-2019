@@ -16,9 +16,10 @@
 
 int yyerror(char*);
 
-struct string {
+typedef struct string {
     char*  _value;
-};
+    STAILQ_ENTRY(string) _next;
+} string;
 
 STAILQ_HEAD(string_queue, string) queue_head;
 
