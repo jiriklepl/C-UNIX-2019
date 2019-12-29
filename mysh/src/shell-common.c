@@ -1,5 +1,14 @@
 #include "shell-common.h"
 
+void clear_queue()
+{
+    while (!STAILQ_EMPTY(&queue_head)) {
+        string *entry = STAILQ_FIRST(&queue_head);
+        STAILQ_REMOVE_HEAD(&queue_head,_next);
+        free(entry->_value);
+        free(entry);
+    }
+}
 
 void move_transfere_union(
     transfere_union *from,

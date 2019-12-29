@@ -22,6 +22,7 @@ struct string {
 
 STAILQ_HEAD(string_queue, string) queue_head;
 
+void clear_queue();
 
 /* this struct is for transfering data between the lexer and
  * bison, lexer being responsible for clean-up
