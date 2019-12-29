@@ -3,6 +3,7 @@ C_FLAGS := -std=c11 -Wall -Wextra -Wpedantic
 RELEASE_FLAGS := -O2 -march=native -DNDEBUG
 DEBUG_FLAGS   := -g -DDEBUG
 
+
 BIN     := bin
 SRC     := src
 INCLUDE := include

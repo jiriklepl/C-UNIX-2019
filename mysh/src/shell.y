@@ -51,7 +51,8 @@ char* input_line = NULL;
 
 /* This function parses a string */
 
-int parse_line() {
+int parse_line()
+{
     set_input_string(input_line);
     int rv = yyparse();
     end_lexical_scan();
@@ -59,7 +60,8 @@ int parse_line() {
     return rv;
 }
 
-void intHandler(int sig) {
+void intHandler(int sig)
+{
     signal(sig, SIG_IGN);
     rl_point = 0;
     rl_delete_text(0, rl_end);
@@ -69,7 +71,8 @@ void intHandler(int sig) {
     signal(SIGINT, intHandler);
 }
 
-int parse_loop() {
+int parse_loop()
+{
     int rv = 1;
     while (1) {
         input_line = readline(MYSH_PROMPT);
@@ -85,13 +88,15 @@ int parse_loop() {
     return rv;
 }
 
-int main(void) {
+int main(void)
+{
     signal(SIGINT, intHandler);
-    STAILQ_INIT(queue_headp);
+    STAILQ_INIT(&queue_head);
     return parse_loop();
 }
 
-int yyerror(char *s) {
+int yyerror(char *s)
+{
 	printf("%s\n", s);
 
     return 127;
