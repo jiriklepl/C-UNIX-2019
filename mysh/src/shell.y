@@ -30,6 +30,9 @@ request:
 
 command:
     STRING
+    | RARROW STRING STRING
+    | DRARROW STRING STRING
+    | LARROW STRING STRING
     | command STRING
     | command RARROW STRING
     | command DRARROW STRING
