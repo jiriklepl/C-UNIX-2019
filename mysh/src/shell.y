@@ -27,18 +27,32 @@
 %%
 
 request:
+    command_sequence
     | command_sequence SEMICOLON request
     ;
 
+command_bit:
+    STRING {
+        string *entry;
+
+        if ((entry = malloc(sizeof(string)))) {
+            if ((entry->_value = malloc(yylval._val._str._len + 01))) {
+                memcpy(entry->_value,yylval._val._str._beg, yylval._val._str._len);
+                entry->_value[yylval._val._str._len] = '\0';
+                STAILQ_INSERT_TAIL(&queue_head, entry, _next);
+            } else {
+                free(entry);
+            }
+        }
+    }
+    | RARROW STRING
+    | DRARROW STRING
+    | LARROW STRING
+    ;
+
 command:
-    STRING
-    | RARROW STRING STRING
-    | DRARROW STRING STRING
-    | LARROW STRING STRING
-    | command STRING
-    | command RARROW STRING
-    | command DRARROW STRING
-    | command LARROW STRING
+    { clear_queue(); } command_bit
+    | command command_bit
     ;
 
 command_sequence:
@@ -85,8 +99,11 @@ int parse_loop()
         }
 
         rv = parse_line();
+        free(input_line);
+        clear_queue();
     }
 
+    rl_clear_history();
     return rv;
 }
 
