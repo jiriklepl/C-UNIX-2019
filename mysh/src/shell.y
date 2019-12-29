@@ -18,22 +18,22 @@
 
 %%
 
-request: command_sequence
-       ;
+request:
+    command_sequence
+    ;
 
-string_list: STRING
-           | string_list STRING
-           ;
+command:
+    STRING
+    | command STRING
+    | command RARROW STRING
+    | command DARROW STRING
+    | command LARROW STRING
+    ;
 
-command_sequence: command
-                | command_sequence PIPE command
-                ;
-
-command: string_list
-       | string_list RARROW STRING
-       | string_list DRARROW STRING
-       | string_list LARROW STRING
-       ;
+command_sequence:
+    command
+    | command_sequence PIPE command
+    ;
 %%
 
 void set_input_string(const char* in);
