@@ -1,17 +1,23 @@
-%token EXIT CD
-
-%token PIPE SEMICOLON SEMBICOLON LBRACE RBRACE RARROW LARROW DRARROW NLINE AMPERSAND DOLLAR
+%token STRING
+%token PIPE
+%token SEMICOLON
+%token SEMBICOLON
+%token LBRACE
+%token RBRACE
+%token RARROW
+%token LARROW
+%token DRARROW
+%token NLINE
+%token AMPERSAND
+%token DOLLAR
 
 %token END 0 "end of file"
-
-%token STRING
 
 %code requires
 {
     #include <stdio.h>
 
     #include "shell-common.h"
-    YYSTYPE yylval;
 }
 
 %start request
@@ -19,14 +25,14 @@
 %%
 
 request:
-    command_sequence
+    | command_sequence SEMICOLON request
     ;
 
 command:
     STRING
     | command STRING
     | command RARROW STRING
-    | command DARROW STRING
+    | command DRARROW STRING
     | command LARROW STRING
     ;
 
@@ -38,18 +44,48 @@ command_sequence:
 
 void set_input_string(const char* in);
 void end_lexical_scan(void);
+char* input_line = NULL;
 
 /* This function parses a string */
+
 int parse_line() {
-    char* in = readline(MYSH_PROMPT);
-    set_input_string(in);
+    set_input_string(input_line);
     int rv = yyparse();
     end_lexical_scan();
+
+    return rv;
+}
+
+void intHandler(int sig) {
+    signal(sig, SIG_IGN);
+    rl_point = 0;
+    rl_delete_text(0, rl_end);
+    rl_reset_line_state();
+    printf("\n");
+    rl_redisplay();
+    signal(SIGINT, intHandler);
+}
+
+int parse_loop() {
+    int rv = 1;
+    while (1) {
+        input_line = readline(MYSH_PROMPT);
+
+        if (input_line == NULL) {
+            rv = 00;
+            break;
+        }
+
+        rv = parse_line();
+    }
+
     return rv;
 }
 
 int main(void) {
-    return parse_line();
+    signal(SIGINT, intHandler);
+    STAILQ_INIT(queue_headp);
+    return parse_loop();
 }
 
 int yyerror(char *s) {
