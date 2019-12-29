@@ -50,7 +50,10 @@ WS              [ \t\r]
     /* NOT SUPPORTED, JUST PA[RS]SING */
 
 "{"                               return LBRACE;
+    /* NOT SUPPORTED, JUST PA[RS]SING */
+
 "}"                               return RBRACE;
+    /* NOT SUPPORTED, JUST PA[RS]SING */
 
 {WS}+                             /* whitespace */
 
