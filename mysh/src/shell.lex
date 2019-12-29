@@ -17,30 +17,33 @@ WS              [ \t\r]
 %{
 %}
 
-cd              return CD;
-exit            return EXIT;
+#.*                               /* comment */
 
-"<"             return LARROW;
-">"             return RARROW;
-">>"            return DRARROW;
+[A-Za-z0-9/-]+                    return STRING;
+([A-Za-z0-9/-]|\"([^"]|\\\")*\")+ return STRING;
 
-"|"             return PIPE;
-";"             return SEMICOLON;
-";;"            return SEMBICOLON;
+"<"                               return LARROW;
+">"                               return RARROW;
+">>"                              return DRARROW;
 
-"&"             return AMPERSAND; /* NOT SUPPORTED, JUST PA[RS]SING */
-"$"             return DOLLAR; /* NOT SUPPORTED, JUST PA[RS]SING */
+"|"                               return PIPE;
+";"                               return SEMICOLON;
+";;"                              return SEMBICOLON;
 
-"{"             return LBRACE;
-"}"             return RBRACE;
+"&"                               return AMPERSAND;
+    /* NOT SUPPORTED, JUST PA[RS]SING */
+"$"                               return DOLLAR;
+    /* NOT SUPPORTED, JUST PA[RS]SING */
 
-{WS}+           /* whitespace */
+"{"                               return LBRACE;
+"}"                               return RBRACE;
 
-\n              return NLINE;
+{WS}+                             /* whitespace */
 
-[A-Za-z0-9/-]+  return STRING;
+\n                                return NLINE;
 
-<<EOF>>         return EOF;
+
+<<EOF>>                           return EOF;
 
 %%
 
