@@ -1,8 +1,6 @@
 %{
     #include "shell-common.h"
     #include "shell.tab.h"
-
-    extern YYSTYPE yylval;
 %}
 
 /* OPTIONs here */
