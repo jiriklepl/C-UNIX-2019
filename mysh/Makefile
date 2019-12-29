@@ -68,7 +68,7 @@ $(TEMP)/%.o: $(TEMP)/%.c $(wildcard $(INCLUDE)/*)
 $(BISON_FILES): $(SRC)/shell.y $(INCLUDE)/shell-common.h
 	$(BISON_COMMAND)
 
-$(FLEX_FILE): $(SRC)/shell.lex $(INCLUDE)/shell-common.h
+$(FLEX_FILE): $(SRC)/shell.lex $(INCLUDE)/shell-common.h $(BISON_FILES)
 	$(FLEX_COMMAND)
 
 $(BIN)/$(EXECUTABLE): $(OBJ_FILES)
