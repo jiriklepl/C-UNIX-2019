@@ -1,6 +1,8 @@
 %{
     #include "shell-common.h"
     #include "shell.tab.h"
+
+    extern YYSTYPE yylval;
 %}
 
 /* OPTIONs here */
@@ -19,8 +21,20 @@ WS              [ \t\r]
 
 #.*                               /* comment */
 
-[A-Za-z0-9/-]+                    return STRING;
-([A-Za-z0-9/-]|\"([^"]|\\\")*\")+ return STRING;
+([A-Za-z0-9/-]|(\"([^"]|\\\")*\")|(\'([^']|\\\')*\'))+ {
+    /* TODO: might split into four functions */
+    set_transfere_string(
+        &yylval,
+        yytext + ((yytext[0] == '"' ||
+            yytext[0] == '\'')
+            ? 1
+            : 0),
+        yyleng - ((yytext[yyleng - 1] == '"' ||
+            yytext[yyleng - 1] == '\'')
+            ? 1
+            : 0));
+    return STRING;
+}
 
 "<"                               return LARROW;
 ">"                               return RARROW;

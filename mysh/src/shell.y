@@ -18,6 +18,8 @@
     #include <stdio.h>
 
     #include "shell-common.h"
+
+    YYSTYPE yylval;
 }
 
 %start request
