@@ -3,28 +3,15 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
-
-#define YYSTYPE value_t
+#define YYSTYPE int
 #define YY_DECL int yylex()
+#define MYSH_PROMPT "mysh$ "
 
 YY_DECL;
-
-typedef struct value_t {
-    enum _type_t {
-        str_t,
-        str_list_t,
-        error_t,
-    } _type;
-
-    union _value_t {
-        char* str;
-        // TODO(jiriklepl): str_list_t
-    } _value;
-} value_t;
-
-void value_t_free(value_t value);
-value_t value_t_str(const char*);
 
 int yyerror(char*);
 

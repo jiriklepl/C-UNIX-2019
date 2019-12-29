@@ -1,6 +1,8 @@
 %token EXIT CD
 
-%token PIPE SEMICOLON LBRACE RBRACE RARROW LARROW DRARROW NLINE
+%token PIPE SEMICOLON SEMBICOLON LBRACE RBRACE RARROW LARROW DRARROW NLINE AMPERSAND DOLLAR
+
+%token END 0 "end of file"
 
 %token STRING
 
@@ -16,11 +18,7 @@
 
 %%
 
-request: command_sequence NLINE
-       | command_sequence SEMICOLON
-       | NLINE
-       | SEMICOLON
-       | request request
+request: command_sequence
        ;
 
 string_list: STRING
@@ -28,21 +26,8 @@ string_list: STRING
            ;
 
 command_sequence: command
-                | command_sequence PIPE command_sequence
-                | LBRACE braced_commands_closed RBRACE
+                | command_sequence PIPE command
                 ;
-
-braced_commands_open: command_sequence
-                    | braced_commands_closed command_sequence
-                    ;
-
-braced_commands_closed: NLINE
-                      | SEMICOLON
-                      | braced_commands_open NLINE
-                      | braced_commands_open SEMICOLON
-                      | braced_commands_closed NLINE
-                      | braced_commands_closed SEMICOLON
-                      ;
 
 command: string_list
        | string_list RARROW STRING
@@ -51,8 +36,20 @@ command: string_list
        ;
 %%
 
+void set_input_string(const char* in);
+void end_lexical_scan(void);
+
+/* This function parses a string */
+int parse_line() {
+    char* in = readline(MYSH_PROMPT);
+    set_input_string(in);
+    int rv = yyparse();
+    end_lexical_scan();
+    return rv;
+}
+
 int main(void) {
-    return yyparse();
+    return parse_line();
 }
 
 int yyerror(char *s) {

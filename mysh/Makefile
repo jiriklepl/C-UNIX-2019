@@ -25,12 +25,14 @@ FLEX_FILE := $(TEMP)/shell.l.c
 FLEX_COMMAND := flex -o$(FLEX_FILE) $(SRC)/shell.lex
 
 
-SRC_FILES = $(wildcard $(SRC)/*.c) $(BISON_SRC) $(FLEX_FILE)
-OBJ_FILES = $(patsubst $(SRC)/%.c,$(TEMP)/%.o,$(patsubst $(TEMP)/%.c,$(TEMP)/%.o,$(SRC_FILES)))
+SRC_FILES := $(wildcard $(SRC)/*.c) $(BISON_SRC) $(FLEX_FILE)
+OBJ_FILES := $(patsubst $(SRC)/%.c,$(TEMP)/%.o,$(patsubst $(TEMP)/%.c,$(TEMP)/%.o,$(SRC_FILES)))
+
+LIBS := -lreadline
 
 COMPILE = $(CC) -c $(C_FLAGS) -I$(INCLUDE) -o$@ $<
 
-LINK_COMMAND = $(CC) $(C_FLAGS) -o$@ $^
+LINK_COMMAND = $(CC) $(C_FLAGS) -o$@ $^ $(LIBS)
 
 
 .PHONY: all clean run debug release
