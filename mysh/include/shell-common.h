@@ -66,4 +66,6 @@ void set_transfere_string(
 
 YY_DECL;
 
+void panic_exit(int);
+
 #endif  // SHELL_COMMON_H_

@@ -19,6 +19,7 @@
 }
 
 %code {
+    struct sigaction int_action, chld_action;
     YYSTYPE yylval;
     size_t lineno = 1;
     char *input_line = NULL;
@@ -33,6 +34,9 @@
 
     void use_prefix();
     void switch_store_cwd();
+
+    void set_input_string(const char *);
+    void end_lexical_scan(void);
 }
 
 %start request
@@ -69,7 +73,12 @@ command_bit:
                 STAILQ_INSERT_TAIL(&queue_head, entry, _next);
             } else {
                 free(entry);
+                end_lexical_scan();
+                panic_exit(254);
             }
+        } else {
+            end_lexical_scan();
+            panic_exit(254);
         }
     }
     | RARROW STRING
@@ -108,7 +117,6 @@ command_sequence:
                     // cd home
                     if ((last_return_value = chdir(getenv("HOME"))) == 0) {
                         switch_store_cwd();
-                        printf("%s\n", cwd);
                     } else {
                         use_prefix();
 
@@ -117,6 +125,15 @@ command_sequence:
                             "Cannot go to $HOME: %s\n",
                             getenv("HOME"));
                     }
+                } else if (i > 2) {
+                    // too many arguments
+                        use_prefix();
+
+                        fprintf(
+                            stderr,
+                            "cd: too many arguments\n");
+
+                        last_return_value = 1;
                 } else if (strcmp(argv[1], "-") == 0) {
                     // cd to OLDPWD (swap with PWD)
                     if ((last_return_value = chdir(getenv("OLDPWD"))) == 0) {
@@ -133,7 +150,6 @@ command_sequence:
                 } else {
                     if ((last_return_value = chdir(argv[1])) == 0) {
                         switch_store_cwd();
-                        printf("%s\n", cwd);
                     } else {
                         use_prefix();
 
@@ -146,8 +162,7 @@ command_sequence:
             } else if (strcmp(*argv, "exit") == 0) {
                 exit(last_return_value);
             } else {
-                pid_t cpid, w;
-                int wstatus;
+                pid_t cpid;
 
                 cpid = fork();
 
@@ -156,6 +171,7 @@ command_sequence:
                     exit(EXIT_FAILURE);
                 } else if (cpid == 0) {
                     // child
+
                     if (execvp(*argv, argv)) {
                         use_prefix();
 
@@ -169,39 +185,7 @@ command_sequence:
                 } else {
                     // parent
                     redisplay = 0;
-
-                    do {
-                        w = waitpid(cpid, &wstatus, WUNTRACED);
-
-                        if (w == -1) {
-                            perror("waitpid");
-                            exit(EXIT_FAILURE);
-                        }
-
-                        if (WIFEXITED(wstatus)) {
-                            last_return_value = WEXITSTATUS(wstatus);
-                        } else if (WIFSIGNALED(wstatus)) {
-                            use_prefix();
-
-                            fprintf(
-                                stderr,
-                                "Killed by signal %d\n",
-                                WTERMSIG(wstatus));
-
-                            last_return_value = WTERMSIG(wstatus) + 128;
-                        } else if (WIFSTOPPED(wstatus)) {
-                            use_prefix();
-
-                            fprintf(
-                                stderr,
-                                "Stopped by signal %d\n",
-                                WSTOPSIG(wstatus));
-
-                            last_return_value = WSTOPSIG(wstatus) + 128;
-                        }
-                    } while (
-                        !WIFEXITED(wstatus) &&
-                        !WIFSIGNALED(wstatus));
+                    pause();
                 }
             }
 
@@ -211,17 +195,22 @@ command_sequence:
 
             free(argv);
             redisplay = 1;
+        } else {
+            end_lexical_scan();
+            panic_exit(254);
         }
     }
     | command_sequence PIPE command
     ;
 %%
 
-void set_input_string(const char *);
-void end_lexical_scan(void);
+
+void panic_exit(int code) {
+    clear_queue();
+    exit(code);
+}
 
 /* This function parses a string */
-
 int parse_line() {
     set_input_string(input_line);
     int rv = yyparse();
@@ -231,10 +220,8 @@ int parse_line() {
 }
 
 void intHandler(int sig) {
-    signal(sig, SIG_IGN);
-
     // bash does that
-    last_return_value = 130;
+    last_return_value = 128 + sig;
 
     if (redisplay) {
         rl_point = 0;
@@ -243,8 +230,46 @@ void intHandler(int sig) {
         printf("\n");
         rl_redisplay();
     }
+}
 
-    signal(SIGINT, intHandler);
+void chldHandler(int sig) {
+    pid_t w;
+    int wstatus;
+
+    last_return_value = 128 + sig;
+
+    do {
+        w = waitpid(-1, &wstatus, WUNTRACED);
+
+        if (w == -1) {
+            perror("waitpid");
+            panic_exit(EXIT_FAILURE);
+        }
+
+        if (WIFEXITED(wstatus)) {
+            last_return_value = WEXITSTATUS(wstatus);
+        } else if (WIFSIGNALED(wstatus)) {
+            use_prefix();
+
+            fprintf(
+                stderr,
+                "Killed by signal %d\n",
+                WTERMSIG(wstatus));
+
+            last_return_value = WTERMSIG(wstatus) + 128;
+        } else if (WIFSTOPPED(wstatus)) {
+            use_prefix();
+
+            fprintf(
+                stderr,
+                "Stopped by signal %d\n",
+                WSTOPSIG(wstatus));
+
+            last_return_value = WSTOPSIG(wstatus) + 128;
+        }
+    } while (
+        !WIFEXITED(wstatus) &&
+        !WIFSIGNALED(wstatus));
 }
 
 int parse_loop() {
@@ -258,6 +283,8 @@ int parse_loop() {
 
         if ((prompt = malloc(len + 1))) {
             snprintf(prompt, len + 1, MYSH_PROMPT, cwd);
+        } else {
+            panic_exit(254);
         }
 
         input_line = readline(prompt);
@@ -343,7 +370,7 @@ int main(int argc, char *argv[]) {
                 ) {
                     strcpy(opts.c_val, optarg);
                 } else {
-                    opts.c_val = NULL;
+                    exit(254);
                 }
 
                 opts.c = 1;
@@ -351,7 +378,16 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    signal(SIGINT, intHandler);
+    int_action.sa_handler = intHandler;
+    sigemptyset(&int_action.sa_mask);
+    int_action.sa_flags = 0;
+    sigaction(SIGINT, &int_action, NULL);
+
+    chld_action.sa_handler = chldHandler;
+    sigemptyset(&chld_action.sa_mask);
+    chld_action.sa_flags = 0;
+    sigaction(SIGCHLD, &chld_action, NULL);
+
     STAILQ_INIT(&queue_head);
 
     if (opts.c == 1) {
