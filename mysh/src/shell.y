@@ -32,6 +32,7 @@
     int redisplay = 1;
 
     void use_prefix();
+    void switch_store_cwd();
 }
 
 %start request
@@ -102,14 +103,8 @@ command_sequence:
                 if (i == 1) {
                     // cd home
                     if ((last_return_value = chdir(getenv("HOME"))) == 0) {
-                        for (size_t i = 0; i < PATH_MAX; ++i) {
-                            char t = cwd[i];
-                            cwd[i] = old_cwd[i];
-                            old_cwd[i] = t;
-                        }
-
-                        setenv("OLDPWD", old_cwd, 1);
-                        getcwd(cwd, sizeof(cwd));
+                        switch_store_cwd();
+                        printf("%s\n", cwd);
                     } else {
                         use_prefix();
                         fprintf(stderr, "Cannot go to $HOME: %s\n", getenv("HOME"));
@@ -117,28 +112,16 @@ command_sequence:
                 } else if (strcmp(argv[1], "-") == 0) {
                     // cd to OLDPWD (swap with PWD)
                     if ((last_return_value = chdir(getenv("OLDPWD"))) == 00) {
-                        for (size_t i = 0; i < PATH_MAX; ++i) {
-                            char t = cwd[i];
-                            cwd[i] = old_cwd[i];
-                            old_cwd[i] = t;
-                        }
-
-                        setenv("OLDPWD", old_cwd, 1);
-                        getcwd(cwd, sizeof(cwd));
+                        switch_store_cwd();
+                        printf("%s\n", cwd);
                     } else {
                         use_prefix();
                         fprintf(stderr, "Cannot go to $OLDPWD: %s\n", getenv("OLDPWD"));
                     }
                 } else {
                     if ((last_return_value = chdir(argv[1])) == 0) {
-                        for (size_t i = 0; i < PATH_MAX; ++i) {
-                            char t = cwd[i];
-                            cwd[i] = old_cwd[i];
-                            old_cwd[i] = t;
-                        }
-
-                        setenv("OLDPWD", old_cwd, 1);
-                        getcwd(cwd, sizeof(cwd));
+                        switch_store_cwd();
+                        printf("%s\n", cwd);
                     } else {
                         use_prefix();
                         fprintf(stderr, "Cannot go to %s\n", getenv("OLDPWD"));
@@ -353,6 +336,17 @@ void use_prefix() {
 	if (!is_interactive) {
         fprintf(stderr, "Line %zu: ", lineno);
     }
+}
+
+void switch_store_cwd() {
+    for (size_t i = 0; i < PATH_MAX; ++i) {
+        char t = cwd[i];
+        cwd[i] = old_cwd[i];
+        old_cwd[i] = t;
+    }
+
+    setenv("OLDPWD", old_cwd, 1);
+    getcwd(cwd, sizeof(cwd));
 }
 
 int yyerror(char *s)
