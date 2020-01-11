@@ -3,11 +3,12 @@
     #include "shell.tab.h"
 
     extern YYSTYPE yylval;
+    extern size_t lineno;
 %}
 
 /* OPTIONs here */
 %option noyywrap nounput noinput
-%option always-interactive
+%option never-interactive
 
 /* MACROs here */
 WS              [ \t\r]
@@ -21,7 +22,7 @@ WS              [ \t\r]
 
 #.*                               /* comment */
 
-([A-Za-z0-9/-]|(\"([^"]|\\\")*\")|(\'([^']|\\\')*\'))+ {
+([A-Za-z0-9/\-.]|(\"([^"]|\\\")*\")|(\'([^']|\\\')*\'))+ {
     /* TODO: might split into four functions */
     set_transfere_string(
         &yylval,
@@ -42,7 +43,6 @@ WS              [ \t\r]
 
 "|"                               return PIPE;
 ";"                               return SEMICOLON;
-";;"                              return SEMBICOLON;
 
 "&"                               return AMPERSAND;
     /* NOT SUPPORTED, JUST PA[RS]SING */
@@ -57,7 +57,7 @@ WS              [ \t\r]
 
 {WS}+                             /* whitespace */
 
-\n                                return NLINE;
+\n                                ++lineno; return NLINE;
 
 
 <<EOF>>                           return EOF;
