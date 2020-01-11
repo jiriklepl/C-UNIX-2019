@@ -12,6 +12,8 @@
 
 %token END 0 "end of file"
 
+%define parse.error verbose
+
 %code requires {
     #include "shell-common.h"
 }
@@ -378,7 +380,7 @@ void switch_store_cwd() {
     }
 }
 
-int yyerror(char *s) {
+int yyerror(const char *s) {
     use_prefix();
 	fprintf(stderr, "%s\n", s);
 
