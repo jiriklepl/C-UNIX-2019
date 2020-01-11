@@ -1,18 +1,29 @@
 #ifndef SHELL_COMMON_H_
 #define SHELL_COMMON_H_
 
+#define _DEFAULT_SOURCE
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <signal.h>
+#include <fcntl.h>
+#include <err.h>
+
+#include <linux/limits.h>
+
 #include <sys/queue.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
 
 #define YYSTYPE transfere_union
 #define YY_DECL int yylex()
-#define MYSH_PROMPT "mysh$ "
+#define MYSH_PROMPT "mysh:%s$ "
 
 int yyerror(char*);
 
