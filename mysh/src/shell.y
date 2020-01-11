@@ -347,7 +347,14 @@ void switch_store_cwd() {
     }
 
     setenv("OLDPWD", old_cwd, 1);
-    getcwd(cwd, sizeof(cwd));
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+        char *env_cwd = getenv("PWD");
+        if (env_cwd) {
+            strcpy(cwd, env_cwd);
+        } else {
+            cwd[0] = '\0';
+        }
+    }
 }
 
 int yyerror(char *s)
