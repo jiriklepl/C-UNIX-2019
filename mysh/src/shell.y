@@ -255,6 +255,7 @@ int parse_loop() {
         free(prompt);
 
         if (input_line == NULL) {
+            clear_queue();
             break;
         }
 
@@ -279,17 +280,17 @@ int parse_loop() {
 
 int parse_string_loop(char *from_string) {
     if (from_string == NULL) {
-        // TODO:
-        return 127;
+        last_return_value = 127;
+    } else {
+        input_line = from_string;
+
+        if (parse_line()) {
+            last_return_value = 254;
+        }
+
+        free(input_line);
     }
 
-    input_line = from_string;
-
-    if (parse_line()) {
-        last_return_value = 254;
-    }
-
-    free(input_line);
     clear_queue();
 
     return last_return_value;
