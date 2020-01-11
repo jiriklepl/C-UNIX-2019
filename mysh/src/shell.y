@@ -288,6 +288,7 @@ int parse_file_loop(char *fname) {
     }
 
     fclose(fh);
+    clear_queue();
 
     return last_return_value;
 }
