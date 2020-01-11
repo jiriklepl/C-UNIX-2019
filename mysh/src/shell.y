@@ -21,7 +21,7 @@
 {
     YYSTYPE yylval;
     size_t lineno = 1;
-    char* input_line = NULL;
+    char *input_line = NULL;
     int is_interactive = 1;
 
     extern FILE *yyin;
@@ -58,9 +58,12 @@ command_bit:
     STRING {
         string *entry;
 
-        if ((entry = malloc(sizeof(string)))) {
-            if ((entry->_value = malloc(yylval._val._str._len + 01))) {
-                memcpy(entry->_value,yylval._val._str._beg, yylval._val._str._len);
+        if ((entry = malloc(sizeof (string)))) {
+            if ((entry->_value = malloc(yylval._val._str._len + 1))) {
+                memcpy(
+                    entry->_value,
+                    yylval._val._str._beg,
+                    yylval._val._str._len);
                 entry->_value[yylval._val._str._len] = '\0';
                 STAILQ_INSERT_TAIL(&queue_head, entry, _next);
             } else {
@@ -88,7 +91,7 @@ command_sequence:
             ++i;
 
 
-        if ((argv = malloc(sizeof(char*) * (i + 01)))) {
+        if ((argv = malloc(sizeof (char *) * (i + 1)))) {
             i = 0;
 
             STAILQ_FOREACH(entry, &queue_head, _next) {
@@ -107,16 +110,22 @@ command_sequence:
                         printf("%s\n", cwd);
                     } else {
                         use_prefix();
-                        fprintf(stderr, "Cannot go to $HOME: %s\n", getenv("HOME"));
+                        fprintf(
+                            stderr,
+                            "Cannot go to $HOME: %s\n",
+                            getenv("HOME"));
                     }
                 } else if (strcmp(argv[1], "-") == 0) {
                     // cd to OLDPWD (swap with PWD)
-                    if ((last_return_value = chdir(getenv("OLDPWD"))) == 00) {
+                    if ((last_return_value = chdir(getenv("OLDPWD"))) == 0) {
                         switch_store_cwd();
                         printf("%s\n", cwd);
                     } else {
                         use_prefix();
-                        fprintf(stderr, "Cannot go to $OLDPWD: %s\n", getenv("OLDPWD"));
+                        fprintf(
+                            stderr,
+                            "Cannot go to $OLDPWD: %s\n",
+                            getenv("OLDPWD"));
                     }
                 } else {
                     if ((last_return_value = chdir(argv[1])) == 0) {
@@ -124,7 +133,10 @@ command_sequence:
                         printf("%s\n", cwd);
                     } else {
                         use_prefix();
-                        fprintf(stderr, "Cannot go to %s\n", getenv("OLDPWD"));
+                        fprintf(
+                            stderr,
+                            "Cannot go to %s\n",
+                            getenv("OLDPWD"));
                     }
                 }
             } else if (strcmp(*argv, "exit") == 0) {
@@ -144,7 +156,10 @@ command_sequence:
 
                     if ((rv = execvp(*argv, argv))) {
                         use_prefix();
-                        fprintf(stderr, "%s - No such file or directory\n", *argv);
+                        fprintf(
+                            stderr,
+                            "%s - No such file or directory\n",
+                            *argv);
                         exit(127);
                     }
                 } else {
@@ -162,11 +177,17 @@ command_sequence:
                             last_return_value = WEXITSTATUS(wstatus);
                         } else if (WIFSIGNALED(wstatus)) {
                             use_prefix();
-                            fprintf(stderr, "Killed by signal %d\n", WTERMSIG(wstatus));
+                            fprintf(
+                                stderr,
+                                "Killed by signal %d\n",
+                                WTERMSIG(wstatus));
                             last_return_value = WTERMSIG(wstatus) + 128;
                         } else if (WIFSTOPPED(wstatus)) {
                             use_prefix();
-                            fprintf(stderr, "Stopped by signal %d\n", WSTOPSIG(wstatus));
+                            fprintf(
+                                stderr,
+                                "Stopped by signal %d\n",
+                                WSTOPSIG(wstatus));
                             last_return_value = WSTOPSIG(wstatus) + 128;
                         }
                     } while (!WIFEXITED(wstatus) && !WIFSIGNALED(wstatus));
@@ -186,7 +207,7 @@ command_sequence:
     ;
 %%
 
-void set_input_string(const char* in);
+void set_input_string(const char *);
 void end_lexical_scan(void);
 
 /* This function parses a string */
@@ -220,7 +241,7 @@ void intHandler(int sig)
 
 int parse_loop()
 {
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    if (getcwd(cwd, sizeof (cwd)) == NULL) {
         exit(127);
     }
 
@@ -256,7 +277,8 @@ int parse_loop()
     return last_return_value;
 }
 
-int parse_string_loop(char *from_string) {
+int parse_string_loop(char *from_string)
+{
     if (from_string == NULL) {
         // TODO:
         return 127;
@@ -274,7 +296,8 @@ int parse_string_loop(char *from_string) {
     return last_return_value;
 }
 
-int parse_file_loop(char *fname) {
+int parse_file_loop(char *fname)
+{
     FILE *fh = fopen(fname, "r");
 
     if (fh == NULL) {
@@ -283,7 +306,7 @@ int parse_file_loop(char *fname) {
 
     yyin = fh;
 
-    if(yyparse()) {
+    if (yyparse()) {
         last_return_value = 254;
     }
 
@@ -325,7 +348,7 @@ int main(int argc, char *argv[])
     STAILQ_INIT(&queue_head);
     if (opts.c == 1) {
         return parse_string_loop(opts.c_val);
-    } else if(argc == 1) {
+    } else if (argc == 1) {
         return parse_loop();
     } else {
         is_interactive = 0;
@@ -333,13 +356,15 @@ int main(int argc, char *argv[])
     }
 }
 
-void use_prefix() {
+void use_prefix()
+{
 	if (!is_interactive) {
         fprintf(stderr, "Line %zu: ", lineno);
     }
 }
 
-void switch_store_cwd() {
+void switch_store_cwd()
+{
     for (size_t i = 0; i < PATH_MAX; ++i) {
         char t = cwd[i];
         cwd[i] = old_cwd[i];
@@ -347,7 +372,7 @@ void switch_store_cwd() {
     }
 
     setenv("OLDPWD", old_cwd, 1);
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    if (getcwd(cwd, sizeof (cwd)) == NULL) {
         char *env_cwd = getenv("PWD");
         if (env_cwd) {
             strcpy(cwd, env_cwd);

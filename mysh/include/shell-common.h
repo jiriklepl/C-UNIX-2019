@@ -25,10 +25,10 @@
 #define YY_DECL int yylex()
 #define MYSH_PROMPT "mysh:%s$ "
 
-int yyerror(char*);
+int yyerror(char *);
 
 typedef struct string {
-    char*  _value;
+    char *_value;
     STAILQ_ENTRY(string) _next;
 } string;
 
@@ -36,7 +36,8 @@ STAILQ_HEAD(string_queue, string) queue_head;
 
 void clear_queue();
 
-/* this struct is for transfering data between the lexer and
+/*
+ * this struct is for transfering data between the lexer and
  * bison, lexer being responsible for clean-up
  */
 typedef struct transfere_union {
