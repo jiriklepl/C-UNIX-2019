@@ -188,7 +188,9 @@ command_sequence:
                                 WSTOPSIG(wstatus));
                             last_return_value = WSTOPSIG(wstatus) + 128;
                         }
-                    } while (!WIFEXITED(wstatus) && !WIFSIGNALED(wstatus));
+                    } while (
+                        !WIFEXITED(wstatus) &&
+                        !WIFSIGNALED(wstatus));
                 }
             }
 
@@ -256,7 +258,10 @@ int parse_loop() {
             break;
         }
 
-        if (strlen(input_line) > 0 && input_line[0] != ' ') {
+        if (
+            strlen(input_line) > 0 &&
+            input_line[0] != ' '
+        ) {
             add_history(input_line);
         }
 
