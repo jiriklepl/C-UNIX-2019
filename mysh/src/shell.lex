@@ -57,7 +57,7 @@ WS              [ \t\r]
 
 {WS}+                             /* whitespace */
 
-\n                                ++lineno; return NLINE;
+\n                                return NLINE;
 
 
 <<EOF>>                           return EOF;

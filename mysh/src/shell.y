@@ -49,7 +49,7 @@ open_request:
 closed_request:
     | SEMICOLON
     | open_request SEMICOLON
-    | request NLINE
+    | request NLINE { ++lineno; }
     ;
 
 command_bit:
