@@ -64,6 +64,7 @@ command_bit:
                     entry->_value,
                     yylval._val._str._beg,
                     yylval._val._str._len);
+
                 entry->_value[yylval._val._str._len] = '\0';
                 STAILQ_INSERT_TAIL(&queue_head, entry, _next);
             } else {
@@ -110,6 +111,7 @@ command_sequence:
                         printf("%s\n", cwd);
                     } else {
                         use_prefix();
+
                         fprintf(
                             stderr,
                             "Cannot go to $HOME: %s\n",
@@ -122,6 +124,7 @@ command_sequence:
                         printf("%s\n", cwd);
                     } else {
                         use_prefix();
+
                         fprintf(
                             stderr,
                             "Cannot go to $OLDPWD: %s\n",
@@ -133,6 +136,7 @@ command_sequence:
                         printf("%s\n", cwd);
                     } else {
                         use_prefix();
+
                         fprintf(
                             stderr,
                             "Cannot go to %s\n",
@@ -144,7 +148,6 @@ command_sequence:
             } else {
                 pid_t cpid, w;
                 int wstatus;
-                int rv;
 
                 cpid = fork();
 
@@ -153,21 +156,23 @@ command_sequence:
                     exit(EXIT_FAILURE);
                 } else if (cpid == 0) {
                     // child
-
-                    if ((rv = execvp(*argv, argv))) {
+                    if (execvp(*argv, argv)) {
                         use_prefix();
+
                         fprintf(
                             stderr,
                             "%s - No such file or directory\n",
                             *argv);
+
                         exit(127);
                     }
                 } else {
+                    // parent
                     redisplay = 0;
 
-                    // parent
                     do {
                         w = waitpid(cpid, &wstatus, WUNTRACED);
+
                         if (w == -1) {
                             perror("waitpid");
                             exit(EXIT_FAILURE);
@@ -177,17 +182,21 @@ command_sequence:
                             last_return_value = WEXITSTATUS(wstatus);
                         } else if (WIFSIGNALED(wstatus)) {
                             use_prefix();
+
                             fprintf(
                                 stderr,
                                 "Killed by signal %d\n",
                                 WTERMSIG(wstatus));
+
                             last_return_value = WTERMSIG(wstatus) + 128;
                         } else if (WIFSTOPPED(wstatus)) {
                             use_prefix();
+
                             fprintf(
                                 stderr,
                                 "Stopped by signal %d\n",
                                 WSTOPSIG(wstatus));
+
                             last_return_value = WSTOPSIG(wstatus) + 128;
                         }
                     } while (
@@ -201,7 +210,6 @@ command_sequence:
             }
 
             free(argv);
-
             redisplay = 1;
         }
     }
@@ -277,6 +285,7 @@ int parse_loop() {
     }
 
     rl_clear_history();
+
     return last_return_value;
 }
 
@@ -320,7 +329,6 @@ int parse_file_loop(char *fname) {
 int main(int argc, char *argv[]) {
     struct {
         int c;
-        int c_len;
         char *c_val;
     } opts = { .c = 0 };
 
@@ -329,23 +337,23 @@ int main(int argc, char *argv[]) {
     while ((opt = getopt(argc, argv, "c:")) != -1) {
         switch (opt) {
             case 'c':
-                opts.c = 1;
-
                 if (
-                    (opts.c_len = strlen(optarg)) > 0 &&
-                    (opts.c_val = malloc(opts.c_len + 1))
+                    (opts.c = strlen(optarg)) > 0 &&
+                    (opts.c_val = malloc(opts.c + 1))
                 ) {
                     strcpy(opts.c_val, optarg);
                 } else {
                     opts.c_val = NULL;
-                    // TODO: error
                 }
+
+                opts.c = 1;
             break;
         }
     }
 
     signal(SIGINT, intHandler);
     STAILQ_INIT(&queue_head);
+
     if (opts.c == 1) {
         return parse_string_loop(opts.c_val);
     } else if (argc == 1) {
@@ -372,6 +380,7 @@ void switch_store_cwd() {
     setenv("OLDPWD", old_cwd, 1);
     if (getcwd(cwd, sizeof(cwd)) == NULL) {
         char *env_cwd = getenv("PWD");
+
         if (env_cwd) {
             strcpy(cwd, env_cwd);
         } else {
