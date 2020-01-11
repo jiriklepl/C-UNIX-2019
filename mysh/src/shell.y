@@ -28,12 +28,11 @@
     extern FILE *yyin;
 
     int last_return_value;
-    char cwd[PATH_MAX];
-    char old_cwd[PATH_MAX];
+    char *cwd;
     int redisplay = 1;
 
     void use_prefix();
-    void switch_store_cwd();
+    int switch_store_cwd();
 
     void set_input_string(const char *);
     void end_lexical_scan(void);
@@ -116,7 +115,10 @@ command_sequence:
                 if (i == 1) {
                     // cd home
                     if ((last_return_value = chdir(getenv("HOME"))) == 0) {
-                        switch_store_cwd();
+                        if (switch_store_cwd() == -1) {
+                            end_lexical_scan();
+                            panic_exit(254);
+                        }
                     } else {
                         use_prefix();
 
@@ -137,7 +139,11 @@ command_sequence:
                 } else if (strcmp(argv[1], "-") == 0) {
                     // cd to OLDPWD (swap with PWD)
                     if ((last_return_value = chdir(getenv("OLDPWD"))) == 0) {
-                        switch_store_cwd();
+                        if (switch_store_cwd() == -1) {
+                            end_lexical_scan();
+                            panic_exit(254);
+                        }
+
                         printf("%s\n", cwd);
                     } else {
                         use_prefix();
@@ -149,7 +155,10 @@ command_sequence:
                     }
                 } else {
                     if ((last_return_value = chdir(argv[1])) == 0) {
-                        switch_store_cwd();
+                        if (switch_store_cwd() == -1) {
+                            end_lexical_scan();
+                            panic_exit(254);
+                        }
                     } else {
                         use_prefix();
 
@@ -273,10 +282,6 @@ void chldHandler(int sig) {
 }
 
 int parse_loop() {
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-        exit(127);
-    }
-
     while (1) {
         char *prompt = NULL;
         int len = snprintf(NULL, 0, MYSH_PROMPT, cwd);
@@ -390,6 +395,12 @@ int main(int argc, char *argv[]) {
 
     STAILQ_INIT(&queue_head);
 
+    cwd = NULL;
+
+    if(switch_store_cwd() == -1) {
+        panic_exit(254);
+    }
+
     if (opts.c == 1) {
         return parse_string_loop(opts.c_val);
     } else if (argc == 1) {
@@ -406,23 +417,30 @@ void use_prefix() {
     }
 }
 
-void switch_store_cwd() {
-    for (size_t i = 0; i < PATH_MAX; ++i) {
-        char t = cwd[i];
-        cwd[i] = old_cwd[i];
-        old_cwd[i] = t;
-    }
+int switch_store_cwd() {
+    char *new_cwd;
 
-    setenv("OLDPWD", old_cwd, 1);
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-        char *env_cwd = getenv("PWD");
-
-        if (env_cwd) {
-            strcpy(cwd, env_cwd);
-        } else {
-            cwd[0] = '\0';
+    if (cwd == NULL) {
+        if (unsetenv("OLDPWD") == -1) {
+            return -1;
         }
+    } else if (setenv("OLDPWD", cwd, 1) == -1) {
+        return -1;
     }
+
+    if ((new_cwd = getcwd(NULL, 0)) == NULL) {
+        return -1;
+    }
+
+    if (setenv("PWD", new_cwd, 1) == -1) {
+        free(new_cwd);
+        return -1;
+    }
+
+    free(new_cwd);
+    cwd = getenv("PWD");
+
+    return 0;
 }
 
 int yyerror(const char *s) {
