@@ -1,7 +1,6 @@
 #include "shell-common.h"
 
-void clear_queue()
-{
+void clear_queue() {
     while (!STAILQ_EMPTY(&queue_head)) {
         string *entry = STAILQ_FIRST(&queue_head);
         STAILQ_REMOVE_HEAD(&queue_head, _next);
@@ -12,8 +11,8 @@ void clear_queue()
 
 void move_transfere_union(
     transfere_union *from,
-    transfere_union *to)
-{
+    transfere_union *to
+) {
     switch (to->_type = from->_type) {
         case TU_STRING:
             to->_val._str._beg = from->_val._str._beg;
@@ -30,8 +29,8 @@ void move_transfere_union(
 void set_transfere_string(
     transfere_union *tu_val,
     char *beg,
-    size_t len)
-{
+    size_t len
+) {
     // clean-up:
     switch (tu_val->_type) {
         case TU_STRING:

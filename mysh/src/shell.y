@@ -12,13 +12,11 @@
 
 %token END 0 "end of file"
 
-%code requires
-{
+%code requires {
     #include "shell-common.h"
 }
 
-%code
-{
+%code {
     YYSTYPE yylval;
     size_t lineno = 1;
     char *input_line = NULL;
@@ -58,7 +56,7 @@ command_bit:
     STRING {
         string *entry;
 
-        if ((entry = malloc(sizeof (string)))) {
+        if ((entry = malloc(sizeof(string)))) {
             if ((entry->_value = malloc(yylval._val._str._len + 1))) {
                 memcpy(
                     entry->_value,
@@ -91,7 +89,7 @@ command_sequence:
             ++i;
 
 
-        if ((argv = malloc(sizeof (char *) * (i + 1)))) {
+        if ((argv = malloc(sizeof(char *) * (i + 1)))) {
             i = 0;
 
             STAILQ_FOREACH(entry, &queue_head, _next) {
@@ -212,8 +210,7 @@ void end_lexical_scan(void);
 
 /* This function parses a string */
 
-int parse_line()
-{
+int parse_line() {
     set_input_string(input_line);
     int rv = yyparse();
     end_lexical_scan();
@@ -221,8 +218,7 @@ int parse_line()
     return rv;
 }
 
-void intHandler(int sig)
-{
+void intHandler(int sig) {
     signal(sig, SIG_IGN);
 
     // bash does that
@@ -239,9 +235,8 @@ void intHandler(int sig)
     signal(SIGINT, intHandler);
 }
 
-int parse_loop()
-{
-    if (getcwd(cwd, sizeof (cwd)) == NULL) {
+int parse_loop() {
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
         exit(127);
     }
 
@@ -277,8 +272,7 @@ int parse_loop()
     return last_return_value;
 }
 
-int parse_string_loop(char *from_string)
-{
+int parse_string_loop(char *from_string) {
     if (from_string == NULL) {
         // TODO:
         return 127;
@@ -296,8 +290,7 @@ int parse_string_loop(char *from_string)
     return last_return_value;
 }
 
-int parse_file_loop(char *fname)
-{
+int parse_file_loop(char *fname) {
     FILE *fh = fopen(fname, "r");
 
     if (fh == NULL) {
@@ -316,8 +309,7 @@ int parse_file_loop(char *fname)
     return last_return_value;
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     struct {
         int c;
         int c_len;
@@ -356,15 +348,13 @@ int main(int argc, char *argv[])
     }
 }
 
-void use_prefix()
-{
+void use_prefix() {
 	if (!is_interactive) {
         fprintf(stderr, "Line %zu: ", lineno);
     }
 }
 
-void switch_store_cwd()
-{
+void switch_store_cwd() {
     for (size_t i = 0; i < PATH_MAX; ++i) {
         char t = cwd[i];
         cwd[i] = old_cwd[i];
@@ -372,7 +362,7 @@ void switch_store_cwd()
     }
 
     setenv("OLDPWD", old_cwd, 1);
-    if (getcwd(cwd, sizeof (cwd)) == NULL) {
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
         char *env_cwd = getenv("PWD");
         if (env_cwd) {
             strcpy(cwd, env_cwd);
@@ -382,8 +372,7 @@ void switch_store_cwd()
     }
 }
 
-int yyerror(char *s)
-{
+int yyerror(char *s) {
     use_prefix();
 	fprintf(stderr, "%s\n", s);
 

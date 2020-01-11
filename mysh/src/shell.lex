@@ -64,12 +64,10 @@ WS              [ \t\r]
 
 %%
 
-void set_input_string(const char *in)
-{
+void set_input_string(const char *in) {
     yy_scan_string(in);
 }
 
-void end_lexical_scan(void)
-{
+void end_lexical_scan(void) {
     yy_delete_buffer(YY_CURRENT_BUFFER);
 }
