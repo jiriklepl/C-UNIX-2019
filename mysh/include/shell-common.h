@@ -25,7 +25,7 @@
 #define YY_DECL int yylex()
 #define MYSH_PROMPT "mysh:%s$ "
 
-int yyerror(char *);
+int yyerror(const char *);
 
 typedef struct string {
     char *_value;
