@@ -96,9 +96,9 @@ command_sequence:
         char **argv;
         size_t i = 0;
 
-        STAILQ_FOREACH(entry, &queue_head, _next)
+        STAILQ_FOREACH(entry, &queue_head, _next) {
             ++i;
-
+        }
 
         if ((argv = malloc(sizeof(char *) * (i + 1)))) {
             i = 0;
@@ -397,7 +397,7 @@ int main(int argc, char *argv[]) {
 
     cwd = NULL;
 
-    if(switch_store_cwd() == -1) {
+    if (switch_store_cwd() == -1) {
         panic_exit(254);
     }
 
