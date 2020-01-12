@@ -36,6 +36,9 @@
 
     void set_input_string(const char *);
     void end_lexical_scan(void);
+
+    void intHandler(int sig);
+    void chldHandler(int sig);
 }
 
 %start request
@@ -247,8 +250,7 @@ void chldHandler(int sig) {
 
     last_return_value = 128 + sig;
 
-    do {
-        w = waitpid(-1, &wstatus, WUNTRACED);
+    if ((w = waitpid(-1, &wstatus, WNOHANG))) {
 
         if (w == -1) {
             perror("waitpid");
@@ -276,9 +278,7 @@ void chldHandler(int sig) {
 
             last_return_value = WSTOPSIG(wstatus) + 128;
         }
-    } while (
-        !WIFEXITED(wstatus) &&
-        !WIFSIGNALED(wstatus));
+    }
 }
 
 int parse_loop() {
