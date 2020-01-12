@@ -412,7 +412,7 @@ int main(int argc, char *argv[]) {
 }
 
 void use_prefix() {
-	if (!is_interactive) {
+    if (!is_interactive) {
         fprintf(stderr, "Line %zu: ", lineno);
     }
 }
