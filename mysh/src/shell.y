@@ -251,7 +251,6 @@ void chldHandler(int sig) {
     last_return_value = 128 + sig;
 
     if ((w = waitpid(-1, &wstatus, WNOHANG))) {
-
         if (w == -1) {
             perror("waitpid");
             panic_exit(EXIT_FAILURE);
