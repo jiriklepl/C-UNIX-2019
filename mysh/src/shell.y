@@ -256,27 +256,40 @@ void chldHandler(int sig) {
             panic_exit(EXIT_FAILURE);
         }
 
+        int s_code;
+        char s_chars[22];
+        char *message;
+        char *beg;
+        int length = 1;
+        s_chars[sizeof(s_chars) - 1] = '\n';
+
         if (WIFEXITED(wstatus)) {
             last_return_value = WEXITSTATUS(wstatus);
+
+            return;
         } else if (WIFSIGNALED(wstatus)) {
-            use_prefix();
-
-            fprintf(
-                stderr,
-                "Killed by signal %d\n",
-                WTERMSIG(wstatus));
-
-            last_return_value = WTERMSIG(wstatus) + 128;
+            message = "Killed by signal ";
+            s_code = WTERMSIG(wstatus);
         } else if (WIFSTOPPED(wstatus)) {
-            use_prefix();
-
-            fprintf(
-                stderr,
-                "Stopped by signal %d\n",
-                WSTOPSIG(wstatus));
-
-            last_return_value = WSTOPSIG(wstatus) + 128;
+            message = "Stopped by signal ";
+            s_code = WSTOPSIG(wstatus);
+        } else {
+            message = "";
+            s_code = 127;
         }
+
+        last_return_value = s_code + 128;
+
+        do {
+            s_chars[sizeof(s_chars) - ++length] = '0' + (s_code % 10);
+        } while ((s_code /= 10) != 0);
+
+        beg = s_chars + sizeof(s_chars) - length;
+        beg -= (length = strlen(message));
+
+        memcpy(beg, message, length);
+
+        write(2, beg, s_chars + sizeof(s_chars) - beg);
     }
 }
 
