@@ -297,6 +297,8 @@ int parse_loop() {
 
         if (input_line == NULL) {
             clear_queue();
+            printf("\n");
+
             break;
         }
 
