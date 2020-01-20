@@ -435,6 +435,7 @@ int switch_store_cwd() {
 
     if (setenv("PWD", new_cwd, 1) == -1) {
         free(new_cwd);
+
         return -1;
     }
 
