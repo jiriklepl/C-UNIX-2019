@@ -474,12 +474,7 @@ void chldHandler(int sig) {
 
     assert(SIGCHLD == sig);
 
-    while ((w = waitpid(-1, &wstatus, WNOHANG)) != -1) {
-        if (w == -1) {
-            perror("waitpid");
-            panic_exit(EXIT_FAILURE);
-        }
-
+    while ((w = wait(&wstatus)) != -1) {
         int s_code;
         char s_chars[22];
         char *message;
