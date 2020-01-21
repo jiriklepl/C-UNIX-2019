@@ -174,10 +174,17 @@ open_request:
                 --argc;
             }
 
-            pipe(pd);
+            if (pipe(pd) == -1) {
+                perror("pipe");
+                end_lexical_scan();
+                panic_exit(254);
+            }
 
             switch (cpid = fork()) {
                 case -1:
+                    perror("fork");
+                    end_lexical_scan();
+                    panic_exit(254);
                 break;
 
                 case 0:
@@ -227,6 +234,9 @@ open_request:
 
         switch (cpid) {
             case -1:
+                perror("fork");
+                end_lexical_scan();
+                panic_exit(254);
             break;
 
             case 0:
