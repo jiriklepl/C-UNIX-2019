@@ -31,14 +31,19 @@
     char *cwd;
     int redisplay = 1;
 
-    void use_prefix();
-    int switch_store_cwd();
+    void use_prefix(void);
+    int switch_store_cwd(void);
 
     void set_input_string(const char *);
     void end_lexical_scan(void);
 
     void intHandler(int sig);
     void chldHandler(int sig);
+
+    int parse_line(void);
+    int parse_loop(void);
+    int parse_string_loop(char *from_string);
+    int parse_file_loop(char *fname);
 
     struct prgv_t {
         /*
