@@ -531,7 +531,7 @@ int parse_loop(void) {
 
         if (input_line == NULL) {
             clear_queue();
-            printf("\n");
+            printf("exit\n");
 
             break;
         }
