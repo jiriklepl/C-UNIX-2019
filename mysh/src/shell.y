@@ -127,7 +127,6 @@ open_request:
                 break;
 
                 case QU_RARROW:
-                    // TODO: maybe function
                     free(prgv[prgc]._out);
                     prgv[prgc]._out = entry->_val._str;
                     entry->_val._str = NULL;
