@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <err.h>
 #include <stdbool.h>
+#include <assert.h>
 
 #include <linux/limits.h>
 
@@ -23,7 +24,7 @@
 #include <readline/history.h>
 
 #define YYSTYPE transfere_union
-#define YY_DECL int yylex()
+#define YY_DECL int yylex(void)
 #define MYSH_PROMPT "mysh:%s$ "
 
 int yyerror(const char *);
@@ -47,8 +48,7 @@ typedef struct queue_union {
 
 STAILQ_HEAD(string_queue, queue_union) queue_head;
 
-void clear_queue();
-queue_union *enqueue_new();
+void clear_queue(void);
 
 /*
  * this struct is for transfering data between the lexer and
@@ -77,6 +77,7 @@ void set_transfere_string(
     char *beg,
     size_t len);
 
+queue_union *enqueue_new(transfere_union *from, enum qu_type type);
 
 YY_DECL;
 
