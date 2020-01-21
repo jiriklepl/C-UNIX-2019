@@ -18,6 +18,12 @@
 			"*.h": "c",
 			"*.c": "c"
 		},
+		"c-cpp-flylint.cppcheck.includePaths": [
+			"${workspaceFolder}/mysh/include"
+		],
+		"c-cpp-flylint.clang.includePaths": [
+			"${workspaceFolder}/mysh/include"
+		],
 		"files.trimTrailingWhitespace": true,
 		"files.insertFinalNewline": true,
 	}
