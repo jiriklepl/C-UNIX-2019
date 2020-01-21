@@ -389,6 +389,12 @@ void open_child(
     } else {
         if (prgv->_in) {
             int fd = open(prgv->_in, O_RDONLY);
+
+            if (fd == -1) {
+                perror("bad fd");
+                exit(127);
+            }
+
             close(0);
             dup(fd);
             close(fd);
@@ -403,6 +409,11 @@ void open_child(
                 fd = open(prgv->_out, O_APPEND | O_CREAT | O_WRONLY, mode);
             } else {
                 fd = open(prgv->_out, O_WRONLY | O_CREAT | O_TRUNC, mode);
+            }
+
+            if (fd == -1) {
+                perror("bad fd");
+                exit(127);
             }
 
             close(1);
@@ -429,7 +440,7 @@ void panic_exit(int code) {
 }
 
 /* This function parses a string */
-int parse_line() {
+int parse_line(void) {
     set_input_string(input_line);
     int rv = yyparse();
     end_lexical_scan();
@@ -454,6 +465,8 @@ void chldHandler(int sig) {
     pid_t w;
     int wstatus;
 
+    assert(SIGCHLD == sig);
+
     while ((w = waitpid(-1, &wstatus, WNOHANG)) != -1) {
         if (w == -1) {
             perror("waitpid");
@@ -464,7 +477,7 @@ void chldHandler(int sig) {
         char s_chars[22];
         char *message;
         char *beg;
-        int length = 1;
+        size_t length = 1;
         s_chars[sizeof(s_chars) - 1] = '\n';
 
         if (WIFEXITED(wstatus)) {
@@ -485,7 +498,7 @@ void chldHandler(int sig) {
         last_return_value = s_code + 128;
 
         do {
-            s_chars[sizeof(s_chars) - ++length] = '0' + (s_code % 10);
+            s_chars[sizeof(s_chars) - ++length] = (char)('0' + (s_code % 10));
         } while ((s_code /= 10) != 0);
 
         beg = s_chars + sizeof(s_chars) - length;
@@ -497,12 +510,14 @@ void chldHandler(int sig) {
     }
 }
 
-int parse_loop() {
+int parse_loop(void) {
     while (1) {
         char *prompt = NULL;
         int len = snprintf(NULL, 0, MYSH_PROMPT, cwd);
 
-        if ((prompt = malloc(len + 1))) {
+        if (len < 0) {
+            panic_exit(254);
+        } else if ((prompt = malloc(len + 1))) {
             snprintf(prompt, len + 1, MYSH_PROMPT, cwd);
         } else {
             panic_exit(254);
@@ -586,10 +601,12 @@ int main(int argc, char *argv[]) {
 
     while ((opt = getopt(argc, argv, "c:")) != -1) {
         switch (opt) {
-            case 'c':
+            case 'c': {
+                size_t len;
+
                 if (
-                    (opts.c = strlen(optarg)) > 0 &&
-                    (opts.c_val = malloc(opts.c + 1))
+                    (len = strlen(optarg)) > 0 &&
+                    (opts.c_val = malloc(len + 1))
                 ) {
                     strcpy(opts.c_val, optarg);
                 } else {
@@ -597,7 +614,7 @@ int main(int argc, char *argv[]) {
                 }
 
                 opts.c = 1;
-            break;
+            } break;
         }
     }
 
