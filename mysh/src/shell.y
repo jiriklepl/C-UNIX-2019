@@ -188,16 +188,19 @@ open_request:
                 break;
 
                 case 0:
-                    if (pd[2] != -1) {
-                        close(1);
-                        dup(pd[2]);
-                        close(pd[2]);
+                    if (
+                        ((pd[2] != -1) && (
+                            dup2(pd[2], STDOUT_FILENO) == -1 ||
+                            close(pd[2]) == -1
+                        )) ||
+                        dup2(pd[0], STDIN_FILENO) == -1 ||
+                        close(pd[0]) == -1 ||
+                        close(pd[1]) == -1
+                    ) {
+                        perror("fork");
+                        end_lexical_scan();
+                        panic_exit(254);
                     }
-
-                    close(0);
-                    dup(pd[0]);
-                    close(pd[0]);
-                    close(pd[1]);
 
                     open_child(argv + argc + prgc + 1, prgv + prgc);
 
@@ -220,8 +223,6 @@ open_request:
             --prgc;
         }
 
-        cpid = 0;
-
         if (
             strcmp(*(argv + 1), "cd") != 0 &&
             strcmp(*(argv + 1), "exit") != 0
@@ -230,6 +231,7 @@ open_request:
         } else {
             close(pd[2]);
             pd[2] = -1;
+            cpid = 0;
         }
 
         switch (cpid) {
@@ -241,9 +243,14 @@ open_request:
 
             case 0:
                 if (pd[2] != -1) {
-                    close(1);
-                    dup(pd[2]);
-                    close(pd[2]);
+                    if (
+                        dup2(pd[2], STDOUT_FILENO) == -1 ||
+                        close(pd[2]) == -1
+                    ) {
+                        perror("fork");
+                        end_lexical_scan();
+                        panic_exit(254);
+                    }
                 }
 
                 open_child(argv + 1, prgv + prgc);
@@ -390,14 +397,14 @@ void open_child(
         if (prgv->_in) {
             int fd = open(prgv->_in, O_RDONLY);
 
-            if (fd == -1) {
-                perror("bad fd");
+            if (
+                fd == -1 ||
+                dup2(fd, STDIN_FILENO) == -1 ||
+                close(fd) == -1
+            ) {
+                perror("failed opening input");
                 exit(127);
             }
-
-            close(0);
-            dup(fd);
-            close(fd);
         }
 
         if (prgv->_out) {
@@ -411,14 +418,14 @@ void open_child(
                 fd = open(prgv->_out, O_WRONLY | O_CREAT | O_TRUNC, mode);
             }
 
-            if (fd == -1) {
-                perror("bad fd");
+            if (
+                fd == -1 ||
+                dup2(fd, STDOUT_FILENO) == -1 ||
+                close(fd) == -1
+            ) {
+                perror("failed opening output");
                 exit(127);
             }
-
-            close(1);
-            dup(fd);
-            close(fd);
         }
 
         if (execvp(*argv, argv)) {
@@ -506,7 +513,7 @@ void chldHandler(int sig) {
 
         memcpy(beg, message, length);
 
-        write(2, beg, s_chars + sizeof(s_chars) - beg);
+        write(STDERR_FILENO, beg, s_chars + sizeof(s_chars) - beg);
     }
 }
 
