@@ -22,18 +22,32 @@ WS              [ \t\r]
 
 #.*                               /* comment */
 
-([A-Za-z0-9/\-.]|(\"([^"]|\\\")*\")|(\'([^']|\\\')*\'))+ {
-    /* TODO: might split into four functions */
+[A-Za-z0-9/\-.]+ {
     set_transfere_string(
         &yylval,
-        yytext + ((yytext[0] == '"' ||
-            yytext[0] == '\'')
-            ? 1
-            : 0),
-        yyleng - ((yytext[yyleng - 1] == '"' ||
-            yytext[yyleng - 1] == '\'')
-            ? 1
-            : 0));
+        yytext,
+        yyleng);
+
+    return STRING;
+}
+
+
+(\"([^"]|\\\")*\")+ {
+    set_transfere_string(
+        &yylval,
+        yytext + 1,
+        yyleng - 2);
+
+    return STRING;
+}
+
+
+(\'([^']|\\\')*\')+ {
+    set_transfere_string(
+        &yylval,
+        yytext + 1,
+        yyleng - 2);
+
     return STRING;
 }
 

@@ -2,11 +2,60 @@
 
 void clear_queue() {
     while (!STAILQ_EMPTY(&queue_head)) {
-        string *entry = STAILQ_FIRST(&queue_head);
+        queue_union *entry = STAILQ_FIRST(&queue_head);
         STAILQ_REMOVE_HEAD(&queue_head, _next);
-        free(entry->_value);
+
+        switch (entry->_type) {
+            case QU_STRING:
+            case QU_RARROW:
+            case QU_DRARROW:
+            case QU_LARROW:
+                free(entry->_val._str);
+            break;
+
+            case QU_EMPTY:
+            case QU_PIPE:
+            break;
+        }
+
         free(entry);
     }
+}
+
+queue_union *enqueue_new(transfere_union *from, enum qu_type type) {
+    queue_union *entry;
+
+    if ((entry = malloc(sizeof(queue_union))) == NULL) {
+        return NULL;
+    }
+
+    switch (entry->_type = type) {
+        case QU_STRING:
+        case QU_RARROW:
+        case QU_DRARROW:
+        case QU_LARROW:
+            if ((entry->_val._str = malloc(from->_val._str._len + 1)) == NULL) {
+                free(entry);
+
+                return NULL;
+            }
+
+            memcpy(
+                entry->_val._str,
+                from->_val._str._beg,
+                from->_val._str._len);
+
+            entry->_val._str[from->_val._str._len] = '\0';
+        break;
+
+        case QU_EMPTY:
+        case QU_PIPE:
+        break;
+    }
+
+    STAILQ_INSERT_TAIL(&queue_head, entry, _next);
+
+    return entry;
 }
 
 void move_transfere_union(

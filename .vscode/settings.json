@@ -1,10 +1,12 @@
 {
     "cSpell.words": [
+        "DRARROW",
         "MYSH",
         "NSWI",
         "cpplint",
         "jiriklepl",
-        "yyerror"
+        "yyerror",
+        "yylex"
     ],
     "C_Cpp.default.cStandard": "c11",
     "files.associations": {

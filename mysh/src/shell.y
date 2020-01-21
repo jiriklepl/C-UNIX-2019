@@ -39,6 +39,21 @@
 
     void intHandler(int sig);
     void chldHandler(int sig);
+
+    struct prgv_t {
+        /*
+            * output and input, NULL represents there is no redirection
+            * (pipe is still considered NULL)
+            */
+        char *_out, *_in;
+
+        // true if >>, false if >, nondeterministic otherwise
+        bool _append;
+    };
+
+    void open_child(
+        char *argv[],
+        struct prgv_t *prgv);
 }
 
 %start request
@@ -51,7 +66,197 @@ request:
     ;
 
 open_request:
-    closed_request command_sequence
+    closed_request command_sequence {
+        queue_union *entry;
+
+        char **argv;
+        struct prgv_t *prgv;
+
+        size_t argc = 0;
+        size_t prgc = 1;
+
+        STAILQ_FOREACH(entry, &queue_head, _next) {
+            switch (entry->_type) {
+                case QU_STRING:
+                    ++argc;
+                break;
+
+                case QU_RARROW:
+                case QU_DRARROW:
+                case QU_LARROW:
+                    // these just modify in/out
+                break;
+
+                case QU_PIPE:
+                    ++prgc;
+                break;
+
+                case QU_EMPTY:
+                break;
+            }
+        }
+
+        if (
+            (argv = malloc(sizeof(char *) * (argc + prgc + 1))) == NULL ||
+            (prgv = malloc(sizeof(struct prgv_t) * prgc)) == NULL
+        ) {
+            end_lexical_scan();
+            panic_exit(254);
+        }
+
+        for (size_t i = 0; i < prgc; ++i) {
+            prgv[i]._out = prgv[i]._in = NULL;
+        }
+
+        argc = 1;
+        prgc = 0;
+
+        argv[0] = NULL;
+
+        STAILQ_FOREACH(entry, &queue_head, _next) {
+            switch (entry->_type) {
+                case QU_STRING:
+                    argv[argc + prgc] = entry->_val._str;
+                    entry->_val._str = NULL;
+                    ++argc;
+                break;
+
+                case QU_RARROW:
+                    // TODO: maybe function
+                    free(prgv[prgc]._out);
+                    prgv[prgc]._out = entry->_val._str;
+                    entry->_val._str = NULL;
+                    prgv[prgc]._append = false;
+                break;
+
+                case QU_DRARROW:
+                    free(prgv[prgc]._out);
+                    prgv[prgc]._out = entry->_val._str;
+                    entry->_val._str = NULL;
+                    prgv[prgc]._append = true;
+                break;
+
+                case QU_LARROW:
+                    free(prgv[prgc]._in);
+                    prgv[prgc]._in = entry->_val._str;
+                    entry->_val._str = NULL;
+                break;
+
+                case QU_PIPE:
+                    argv[argc + prgc] = NULL;
+                    ++prgc;
+                break;
+
+                case QU_EMPTY:
+                break;
+            }
+        }
+
+        argv[argc + prgc] = NULL;
+
+        int pd[3] = {0, 1, -1};
+
+        size_t actual_argc = argc;
+        size_t actual_prgc = prgc + 1;
+
+        --argc;
+
+        pid_t cpid;
+
+        while (prgc != 0) {
+            // skip the topmost null on argv array and find the next one
+            while (argv[argc + prgc] != NULL) {
+                --argc;
+            }
+
+            pipe(pd);
+
+            switch (cpid = fork()) {
+                case -1:
+                break;
+
+                case 0:
+                    if (pd[2] != -1) {
+                        close(1);
+                        dup(pd[2]);
+                        close(pd[2]);
+                    }
+
+                    close(0);
+                    dup(pd[0]);
+                    close(pd[0]);
+                    close(pd[1]);
+
+                    open_child(argv + argc + prgc + 1, prgv + prgc);
+
+                    // we get here iff first argument here is either cd or exit
+                    exit(last_return_value);
+                break;
+
+                default:
+                    close(pd[0]);
+
+                    if (pd[2] != -1) {
+                        close(pd[2]);
+                    }
+
+
+                    pd[2] = pd[1];
+                break;
+            }
+
+            --prgc;
+        }
+
+        cpid = 0;
+
+        if (
+            strcmp(*(argv + 1), "cd") != 0 &&
+            strcmp(*(argv + 1), "exit") != 0
+        ) {
+            cpid = fork();
+        } else {
+            close(pd[2]);
+            pd[2] = -1;
+        }
+
+        switch (cpid) {
+            case -1:
+            break;
+
+            case 0:
+                if (pd[2] != -1) {
+                    close(1);
+                    dup(pd[2]);
+                    close(pd[2]);
+                }
+
+                open_child(argv + 1, prgv + prgc);
+            break;
+
+            default:
+                if (pd[2] != -1) {
+                    close(pd[2]);
+                }
+
+                redisplay = 0;
+                pause();
+            break;
+        }
+
+        for (size_t i = 0; i < actual_argc + actual_prgc; ++i) {
+            free(argv[i]);
+        }
+
+        for (size_t i = 0; i < actual_prgc; ++i) {
+            free(prgv[i]._in);
+            free(prgv[i]._out);
+        }
+
+        free(argv);
+        free(prgv);
+        redisplay = 1;
+    }
     ;
 
 closed_request:
@@ -62,160 +267,146 @@ closed_request:
 
 command_bit:
     STRING {
-        string *entry;
-
-        if ((entry = malloc(sizeof(string)))) {
-            if ((entry->_value = malloc(yylval._val._str._len + 1))) {
-                memcpy(
-                    entry->_value,
-                    yylval._val._str._beg,
-                    yylval._val._str._len);
-
-                entry->_value[yylval._val._str._len] = '\0';
-                STAILQ_INSERT_TAIL(&queue_head, entry, _next);
-            } else {
-                free(entry);
-                end_lexical_scan();
-                panic_exit(254);
-            }
-        } else {
+        if (enqueue_new(&yylval, QU_STRING) == NULL) {
             end_lexical_scan();
             panic_exit(254);
         }
     }
-    | RARROW STRING
-    | DRARROW STRING
-    | LARROW STRING
+    | RARROW STRING {
+        if (enqueue_new(&yylval, QU_RARROW) == NULL) {
+            end_lexical_scan();
+            panic_exit(254);
+        }
+    }
+    | DRARROW STRING {
+        if (enqueue_new(&yylval, QU_DRARROW) == NULL) {
+            end_lexical_scan();
+            panic_exit(254);
+        }
+    }
+    | LARROW STRING {
+        if (enqueue_new(&yylval, QU_LARROW) == NULL) {
+            end_lexical_scan();
+            panic_exit(254);
+        }
+    }
     ;
 
 command:
-    { clear_queue(); } command_bit
+    command_bit
     | command command_bit
     ;
 
 command_sequence:
-    command {
-        string *entry;
-        char **argv;
-        size_t i = 0;
-
-        STAILQ_FOREACH(entry, &queue_head, _next) {
-            ++i;
-        }
-
-        if ((argv = malloc(sizeof(char *) * (i + 1)))) {
-            i = 0;
-
-            STAILQ_FOREACH(entry, &queue_head, _next) {
-                argv[i] = entry->_value;
-                entry->_value = NULL;
-                ++i;
-            }
-
-            argv[i] = NULL;
-
-            if (strcmp(*argv, "cd") == 0) {
-                if (i == 1) {
-                    // cd home
-                    if ((last_return_value = chdir(getenv("HOME"))) == 0) {
-                        if (switch_store_cwd() == -1) {
-                            end_lexical_scan();
-                            panic_exit(254);
-                        }
-                    } else {
-                        use_prefix();
-
-                        fprintf(
-                            stderr,
-                            "Cannot go to $HOME: %s\n",
-                            getenv("HOME"));
-                    }
-                } else if (i > 2) {
-                    // too many arguments
-                        use_prefix();
-
-                        fprintf(
-                            stderr,
-                            "cd: too many arguments\n");
-
-                        last_return_value = 1;
-                } else if (strcmp(argv[1], "-") == 0) {
-                    // cd to OLDPWD (swap with PWD)
-                    if ((last_return_value = chdir(getenv("OLDPWD"))) == 0) {
-                        if (switch_store_cwd() == -1) {
-                            end_lexical_scan();
-                            panic_exit(254);
-                        }
-
-                        printf("%s\n", cwd);
-                    } else {
-                        use_prefix();
-
-                        fprintf(
-                            stderr,
-                            "Cannot go to $OLDPWD: %s\n",
-                            getenv("OLDPWD"));
-                    }
-                } else {
-                    if ((last_return_value = chdir(argv[1])) == 0) {
-                        if (switch_store_cwd() == -1) {
-                            end_lexical_scan();
-                            panic_exit(254);
-                        }
-                    } else {
-                        use_prefix();
-
-                        fprintf(
-                            stderr,
-                            "Cannot go to %s\n",
-                            getenv("OLDPWD"));
-                    }
-                }
-            } else if (strcmp(*argv, "exit") == 0) {
-                exit(last_return_value);
-            } else {
-                pid_t cpid;
-
-                cpid = fork();
-
-                if (cpid == -1) {
-                    perror("fork");
-                    exit(EXIT_FAILURE);
-                } else if (cpid == 0) {
-                    // child
-
-                    if (execvp(*argv, argv)) {
-                        use_prefix();
-
-                        fprintf(
-                            stderr,
-                            "%s - No such file or directory\n",
-                            *argv);
-
-                        exit(127);
-                    }
-                } else {
-                    // parent
-                    redisplay = 0;
-                    pause();
-                }
-            }
-
-            while (i-- > 0) {
-                free(argv[i]);
-            }
-
-            free(argv);
-            redisplay = 1;
-        } else {
+    { clear_queue(); } command
+    | command_sequence PIPE {
+        if (enqueue_new(&yylval, QU_PIPE) == NULL) {
             end_lexical_scan();
             panic_exit(254);
         }
-    }
-    | command_sequence PIPE command
+    } command
     ;
 %%
 
+void open_child(
+    char *argv[],
+    struct prgv_t *prgv
+) {
+    if (strcmp(*argv, "cd") == 0) {
+        if (argv[1] == NULL) {
+            // cd home
+            if ((last_return_value = chdir(getenv("HOME"))) == 0) {
+                if (switch_store_cwd() == -1) {
+                    end_lexical_scan();
+                    panic_exit(254);
+                }
+            } else {
+                use_prefix();
+
+                fprintf(
+                    stderr,
+                    "Cannot go to $HOME: %s\n",
+                    getenv("HOME"));
+            }
+        } else if (argv[2] != NULL) {
+            // too many arguments
+                use_prefix();
+
+                fprintf(
+                    stderr,
+                    "cd: too many arguments\n");
+
+                last_return_value = 1;
+        } else if (strcmp(argv[1], "-") == 0) {
+            // cd to OLDPWD (swap with PWD)
+            if ((last_return_value = chdir(getenv("OLDPWD"))) == 0) {
+                if (switch_store_cwd() == -1) {
+                    end_lexical_scan();
+                    panic_exit(254);
+                }
+
+                printf("%s\n", cwd);
+            } else {
+                use_prefix();
+
+                fprintf(
+                    stderr,
+                    "Cannot go to $OLDPWD: %s\n",
+                    getenv("OLDPWD"));
+            }
+        } else {
+            if ((last_return_value = chdir(argv[1])) == 0) {
+                if (switch_store_cwd() == -1) {
+                    end_lexical_scan();
+                    panic_exit(254);
+                }
+            } else {
+                use_prefix();
+
+                fprintf(
+                    stderr,
+                    "Cannot go to %s\n",
+                    argv[1]);
+            }
+        }
+    } else if (strcmp(*argv, "exit") == 0) {
+        exit(last_return_value);
+    } else {
+        if (prgv->_in) {
+            int fd = open(prgv->_in, O_RDONLY);
+            close(0);
+            dup(fd);
+            close(fd);
+        }
+
+        if (prgv->_out) {
+            int fd;
+
+            mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+
+            if(prgv->_append) {
+                fd = open(prgv->_out, O_APPEND | O_CREAT | O_WRONLY, mode);
+            } else {
+                fd = open(prgv->_out, O_WRONLY | O_CREAT | O_TRUNC, mode);
+            }
+
+            close(1);
+            dup(fd);
+            close(fd);
+        }
+
+        if (execvp(*argv, argv)) {
+            use_prefix();
+
+            fprintf(
+                stderr,
+                "%s - No such file or directory\n",
+                *argv);
+
+            exit(127);
+        }
+    }
+}
 
 void panic_exit(int code) {
     clear_queue();
@@ -248,9 +439,7 @@ void chldHandler(int sig) {
     pid_t w;
     int wstatus;
 
-    last_return_value = 128 + sig;
-
-    if ((w = waitpid(-1, &wstatus, WNOHANG))) {
+    while ((w = waitpid(-1, &wstatus, WNOHANG)) != -1) {
         if (w == -1) {
             perror("waitpid");
             panic_exit(EXIT_FAILURE);
@@ -266,7 +455,7 @@ void chldHandler(int sig) {
         if (WIFEXITED(wstatus)) {
             last_return_value = WEXITSTATUS(wstatus);
 
-            return;
+            continue;
         } else if (WIFSIGNALED(wstatus)) {
             message = "Killed by signal ";
             s_code = WTERMSIG(wstatus);

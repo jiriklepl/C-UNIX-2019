@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <err.h>
+#include <stdbool.h>
 
 #include <linux/limits.h>
 
@@ -27,21 +28,34 @@
 
 int yyerror(const char *);
 
-typedef struct string {
-    char *_value;
-    STAILQ_ENTRY(string) _next;
-} string;
+typedef struct queue_union {
+    enum qu_type {
+        QU_EMPTY,
+        QU_STRING,
+        QU_RARROW,
+        QU_DRARROW,
+        QU_LARROW,
+        QU_PIPE
+    } _type;
 
-STAILQ_HEAD(string_queue, string) queue_head;
+    union {
+        char *_str;
+    } _val;
+
+    STAILQ_ENTRY(queue_union) _next;
+} queue_union;
+
+STAILQ_HEAD(string_queue, queue_union) queue_head;
 
 void clear_queue();
+queue_union *enqueue_new();
 
 /*
  * this struct is for transfering data between the lexer and
  * bison, lexer being responsible for clean-up
  */
 typedef struct transfere_union {
-    enum {
+    enum tu_type {
         TU_EMPTY,
         TU_STRING
     } _type;
