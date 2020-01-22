@@ -32,7 +32,7 @@
     int redisplay = 1;
 
     void use_prefix(void);
-    int switch_store_cwd(void);
+    void switch_store_cwd(void);
 
     void set_input_string(const char *);
     void end_lexical_scan(void);
@@ -59,6 +59,11 @@
     void open_child(
         char *argv[],
         struct prgv_t *prgv);
+
+    void run_cd(char *argv[]);
+
+    void do_enqueue(enum tu_type type);
+    void run_pipeline(void);
 }
 
 %start request
@@ -71,213 +76,7 @@ request:
     ;
 
 open_request:
-    closed_request command_sequence {
-        queue_union *entry;
-
-        char **argv;
-        struct prgv_t *prgv;
-
-        size_t argc = 0;
-        size_t prgc = 1;
-
-        STAILQ_FOREACH(entry, &queue_head, _next) {
-            switch (entry->_type) {
-                case QU_STRING:
-                    ++argc;
-                break;
-
-                case QU_RARROW:
-                case QU_DRARROW:
-                case QU_LARROW:
-                    // these just modify in/out
-                break;
-
-                case QU_PIPE:
-                    ++prgc;
-                break;
-
-                case QU_EMPTY:
-                break;
-            }
-        }
-
-        if (
-            (argv = malloc(sizeof(char *) * (argc + prgc + 1))) == NULL ||
-            (prgv = malloc(sizeof(struct prgv_t) * prgc)) == NULL
-        ) {
-            end_lexical_scan();
-            panic_exit(254);
-        }
-
-        for (size_t i = 0; i < prgc; ++i) {
-            prgv[i]._out = prgv[i]._in = NULL;
-        }
-
-        argc = 1;
-        prgc = 0;
-
-        argv[0] = NULL;
-
-        STAILQ_FOREACH(entry, &queue_head, _next) {
-            switch (entry->_type) {
-                case QU_STRING:
-                    argv[argc + prgc] = entry->_val._str;
-                    entry->_val._str = NULL;
-                    ++argc;
-                break;
-
-                case QU_RARROW:
-                    free(prgv[prgc]._out);
-                    prgv[prgc]._out = entry->_val._str;
-                    entry->_val._str = NULL;
-                    prgv[prgc]._append = false;
-                break;
-
-                case QU_DRARROW:
-                    free(prgv[prgc]._out);
-                    prgv[prgc]._out = entry->_val._str;
-                    entry->_val._str = NULL;
-                    prgv[prgc]._append = true;
-                break;
-
-                case QU_LARROW:
-                    free(prgv[prgc]._in);
-                    prgv[prgc]._in = entry->_val._str;
-                    entry->_val._str = NULL;
-                break;
-
-                case QU_PIPE:
-                    argv[argc + prgc] = NULL;
-                    ++prgc;
-                break;
-
-                case QU_EMPTY:
-                break;
-            }
-        }
-
-        argv[argc + prgc] = NULL;
-
-        int pd[3] = {0, 1, -1};
-
-        size_t actual_argc = argc;
-        size_t actual_prgc = prgc + 1;
-
-        --argc;
-
-        pid_t cpid;
-
-        while (prgc != 0) {
-            // skip the topmost null on argv array and find the next one
-            while (argv[argc + prgc] != NULL) {
-                --argc;
-            }
-
-            if (pipe(pd) == -1) {
-                perror("pipe");
-                end_lexical_scan();
-                panic_exit(254);
-            }
-
-            switch (cpid = fork()) {
-                case -1:
-                    perror("fork");
-                    end_lexical_scan();
-                    panic_exit(254);
-                break;
-
-                case 0:
-                    if (
-                        ((pd[2] != -1) && (
-                            dup2(pd[2], STDOUT_FILENO) == -1 ||
-                            close(pd[2]) == -1
-                        )) ||
-                        dup2(pd[0], STDIN_FILENO) == -1 ||
-                        close(pd[0]) == -1 ||
-                        close(pd[1]) == -1
-                    ) {
-                        perror("fork");
-                        end_lexical_scan();
-                        panic_exit(254);
-                    }
-
-                    open_child(argv + argc + prgc + 1, prgv + prgc);
-
-                    // we get here iff first argument here is either cd or exit
-                    exit(last_return_value);
-                break;
-
-                default:
-                    close(pd[0]);
-
-                    if (pd[2] != -1) {
-                        close(pd[2]);
-                    }
-
-
-                    pd[2] = pd[1];
-                break;
-            }
-
-            --prgc;
-        }
-
-        if (
-            strcmp(*(argv + 1), "cd") != 0 &&
-            strcmp(*(argv + 1), "exit") != 0
-        ) {
-            cpid = fork();
-        } else {
-            close(pd[2]);
-            pd[2] = -1;
-            cpid = 0;
-        }
-
-        switch (cpid) {
-            case -1:
-                perror("fork");
-                end_lexical_scan();
-                panic_exit(254);
-            break;
-
-            case 0:
-                if (pd[2] != -1) {
-                    if (
-                        dup2(pd[2], STDOUT_FILENO) == -1 ||
-                        close(pd[2]) == -1
-                    ) {
-                        perror("fork");
-                        end_lexical_scan();
-                        panic_exit(254);
-                    }
-                }
-
-                open_child(argv + 1, prgv + prgc);
-            break;
-
-            default:
-                if (pd[2] != -1) {
-                    close(pd[2]);
-                }
-
-                redisplay = 0;
-                pause();
-            break;
-        }
-
-        for (size_t i = 0; i < actual_argc + actual_prgc; ++i) {
-            free(argv[i]);
-        }
-
-        for (size_t i = 0; i < actual_prgc; ++i) {
-            free(prgv[i]._in);
-            free(prgv[i]._out);
-        }
-
-        free(argv);
-        free(prgv);
-        redisplay = 1;
-    }
+    closed_request command_sequence { run_pipeline(); }
     ;
 
 closed_request:
@@ -287,30 +86,10 @@ closed_request:
     ;
 
 command_bit:
-    STRING {
-        if (enqueue_new(&yylval, QU_STRING) == NULL) {
-            end_lexical_scan();
-            panic_exit(254);
-        }
-    }
-    | RARROW STRING {
-        if (enqueue_new(&yylval, QU_RARROW) == NULL) {
-            end_lexical_scan();
-            panic_exit(254);
-        }
-    }
-    | DRARROW STRING {
-        if (enqueue_new(&yylval, QU_DRARROW) == NULL) {
-            end_lexical_scan();
-            panic_exit(254);
-        }
-    }
-    | LARROW STRING {
-        if (enqueue_new(&yylval, QU_LARROW) == NULL) {
-            end_lexical_scan();
-            panic_exit(254);
-        }
-    }
+    STRING  { do_enqueue(QU_STRING); }
+    | RARROW STRING  { do_enqueue(QU_RARROW); }
+    | DRARROW STRING  { do_enqueue(QU_DRARROW); }
+    | LARROW STRING  { do_enqueue(QU_LARROW); }
     ;
 
 command:
@@ -320,76 +99,256 @@ command:
 
 command_sequence:
     { clear_queue(); } command
-    | command_sequence PIPE {
-        if (enqueue_new(&yylval, QU_PIPE) == NULL) {
-            end_lexical_scan();
-            panic_exit(254);
-        }
-    } command
+    | command_sequence PIPE { do_enqueue(QU_PIPE); } command
     ;
 %%
+
+void run_pipeline(void) {
+    queue_union *entry;
+
+    char **argv;
+    struct prgv_t *prgv;
+
+    size_t argc = 0;
+    size_t prgc = 1;
+
+    STAILQ_FOREACH(entry, &queue_head, _next) {
+        switch (entry->_type) {
+            case QU_STRING:
+                ++argc;
+            break;
+
+            case QU_PIPE:
+                ++prgc;
+            break;
+
+            case QU_RARROW:
+            case QU_DRARROW:
+            case QU_LARROW:
+                // these just modify in/out
+            case QU_EMPTY:
+            break;
+        }
+    }
+
+    if (
+        (argv = malloc(sizeof(char *) * (argc + prgc + 1))) == NULL ||
+        (prgv = malloc(sizeof(struct prgv_t) * prgc)) == NULL
+    ) {
+        exit(GENERAL_ERROR);
+    }
+
+    for (size_t i = 0; i < prgc; ++i) {
+        prgv[i]._out = prgv[i]._in = NULL;
+    }
+
+    argc = 1;
+    prgc = 0;
+
+    argv[0] = NULL;
+
+    STAILQ_FOREACH(entry, &queue_head, _next) {
+        switch (entry->_type) {
+            case QU_STRING:
+                argv[argc + prgc] = entry->_val._str;
+                entry->_val._str = NULL;
+                ++argc;
+            break;
+
+            case QU_RARROW:
+                free(prgv[prgc]._out);
+                prgv[prgc]._out = entry->_val._str;
+                entry->_val._str = NULL;
+                prgv[prgc]._append = false;
+            break;
+
+            case QU_DRARROW:
+                free(prgv[prgc]._out);
+                prgv[prgc]._out = entry->_val._str;
+                entry->_val._str = NULL;
+                prgv[prgc]._append = true;
+            break;
+
+            case QU_LARROW:
+                free(prgv[prgc]._in);
+                prgv[prgc]._in = entry->_val._str;
+                entry->_val._str = NULL;
+            break;
+
+            case QU_PIPE:
+                argv[argc + prgc] = NULL;
+                ++prgc;
+            break;
+
+            case QU_EMPTY:
+            break;
+        }
+    }
+
+    argv[argc + prgc] = NULL;
+
+    int pd[3] = {0, 1, -1};
+
+    size_t actual_argc = argc;
+    size_t actual_prgc = prgc + 1;
+
+    --argc;
+
+    pid_t cpid;
+
+    while (prgc != 0) {
+        // skip the topmost null on argv array and find the next one
+        while (argv[argc + prgc] != NULL) {
+            --argc;
+        }
+
+        if (pipe(pd) == -1) {
+            perror("pipe");
+            exit(GENERAL_ERROR);
+        }
+
+        switch (cpid = fork()) {
+            case -1:
+                perror("fork");
+                exit(GENERAL_ERROR);
+            break;
+
+            case 0:
+                if (
+                    ((pd[2] != -1) && (
+                        dup2(pd[2], STDOUT_FILENO) == -1 ||
+                        close(pd[2]) == -1
+                    )) ||
+                    dup2(pd[0], STDIN_FILENO) == -1 ||
+                    close(pd[0]) == -1 ||
+                    close(pd[1]) == -1
+                ) {
+                    perror("fork");
+                    exit(GENERAL_ERROR);
+                }
+
+                open_child(argv + argc + prgc + 1, prgv + prgc);
+
+                // we get here iff first argument here is either cd or exit
+                exit(last_return_value);
+            break;
+
+            default:
+                close(pd[0]);
+
+                if (pd[2] != -1) {
+                    close(pd[2]);
+                }
+
+
+                pd[2] = pd[1];
+            break;
+        }
+
+        --prgc;
+    }
+
+    if (
+        strcmp(*(argv + 1), "cd") != 0 &&
+        strcmp(*(argv + 1), "exit") != 0
+    ) {
+        cpid = fork();
+    } else {
+        close(pd[2]);
+        pd[2] = -1;
+        cpid = 0;
+    }
+
+    switch (cpid) {
+        case -1:
+            perror("fork");
+            exit(GENERAL_ERROR);
+        break;
+
+        case 0:
+            if (pd[2] != -1) {
+                if (
+                    dup2(pd[2], STDOUT_FILENO) == -1 ||
+                    close(pd[2]) == -1
+                ) {
+                    perror("fork");
+                    exit(GENERAL_ERROR);
+                }
+            }
+
+            open_child(argv + 1, prgv + prgc);
+        break;
+
+        default:
+            if (pd[2] != -1) {
+                close(pd[2]);
+            }
+
+            redisplay = 0;
+            pause();
+        break;
+    }
+
+    for (size_t i = 0; i < actual_argc + actual_prgc; ++i) {
+        free(argv[i]);
+    }
+
+    for (size_t i = 0; i < actual_prgc; ++i) {
+        free(prgv[i]._in);
+        free(prgv[i]._out);
+    }
+
+    free(argv);
+    free(prgv);
+    redisplay = 1;
+}
+
+void do_enqueue(enum tu_type type) {
+    if (enqueue_new(&yylval, type) == NULL) {
+        perror("queue error");
+        exit(GENERAL_ERROR);
+    }
+}
+
+void run_cd(char *argv[]) {
+    if (argv[1] == NULL) {
+        // cd home
+        if ((last_return_value = chdir(getenv("HOME"))) == 0) {
+            switch_store_cwd();
+        } else {
+            use_prefix();
+            fprintf(stderr, "Cannot go to $HOME: %s\n", getenv("HOME"));
+        }
+    } else if (argv[2] != NULL) {
+        // too many arguments
+        use_prefix();
+        fprintf(stderr, "cd: too many arguments\n");
+        last_return_value = 1;
+    } else if (strcmp(argv[1], "-") == 0) {
+        // cd to OLDPWD (swap with PWD)
+        if ((last_return_value = chdir(getenv("OLDPWD"))) == 0) {
+            switch_store_cwd();
+            printf("%s\n", cwd);
+        } else {
+            use_prefix();
+            fprintf(stderr, "Cannot go to $OLDPWD: %s\n", getenv("OLDPWD"));
+        }
+    } else {
+        if ((last_return_value = chdir(argv[1])) == 0) {
+            switch_store_cwd();
+        } else {
+            use_prefix();
+            fprintf(stderr, "Cannot go to %s\n", argv[1]);
+        }
+    }
+}
 
 void open_child(
     char *argv[],
     struct prgv_t *prgv
 ) {
     if (strcmp(*argv, "cd") == 0) {
-        if (argv[1] == NULL) {
-            // cd home
-            if ((last_return_value = chdir(getenv("HOME"))) == 0) {
-                if (switch_store_cwd() == -1) {
-                    end_lexical_scan();
-                    panic_exit(254);
-                }
-            } else {
-                use_prefix();
-
-                fprintf(
-                    stderr,
-                    "Cannot go to $HOME: %s\n",
-                    getenv("HOME"));
-            }
-        } else if (argv[2] != NULL) {
-            // too many arguments
-                use_prefix();
-
-                fprintf(
-                    stderr,
-                    "cd: too many arguments\n");
-
-                last_return_value = 1;
-        } else if (strcmp(argv[1], "-") == 0) {
-            // cd to OLDPWD (swap with PWD)
-            if ((last_return_value = chdir(getenv("OLDPWD"))) == 0) {
-                if (switch_store_cwd() == -1) {
-                    end_lexical_scan();
-                    panic_exit(254);
-                }
-
-                printf("%s\n", cwd);
-            } else {
-                use_prefix();
-
-                fprintf(
-                    stderr,
-                    "Cannot go to $OLDPWD: %s\n",
-                    getenv("OLDPWD"));
-            }
-        } else {
-            if ((last_return_value = chdir(argv[1])) == 0) {
-                if (switch_store_cwd() == -1) {
-                    end_lexical_scan();
-                    panic_exit(254);
-                }
-            } else {
-                use_prefix();
-
-                fprintf(
-                    stderr,
-                    "Cannot go to %s\n",
-                    argv[1]);
-            }
-        }
+        run_cd(argv);
     } else if (strcmp(*argv, "exit") == 0) {
         exit(last_return_value);
     } else {
@@ -438,11 +397,6 @@ void open_child(
             exit(127);
         }
     }
-}
-
-void panic_exit(int code) {
-    clear_queue();
-    exit(code);
 }
 
 /* This function parses a string */
@@ -544,7 +498,7 @@ int parse_loop(void) {
         }
 
         if (parse_line()) {
-            last_return_value = 254;
+            last_return_value = GENERAL_ERROR;
         }
 
         free(input_line);
@@ -563,7 +517,7 @@ int parse_string_loop(char *from_string) {
         input_line = from_string;
 
         if (parse_line()) {
-            last_return_value = 254;
+            last_return_value = GENERAL_ERROR;
         }
 
         free(input_line);
@@ -578,13 +532,13 @@ int parse_file_loop(char *fname) {
     FILE *fh = fopen(fname, "r");
 
     if (fh == NULL) {
-        errx(254, "Cannot open the file %s\n", fname);
+        errx(GENERAL_ERROR, "Cannot open the file %s\n", fname);
     }
 
     yyin = fh;
 
     if (yyparse()) {
-        last_return_value = 254;
+        last_return_value = GENERAL_ERROR;
     }
 
     fclose(fh);
@@ -612,7 +566,7 @@ int main(int argc, char *argv[]) {
                 ) {
                     strcpy(opts.c_val, optarg);
                 } else {
-                    exit(254);
+                    exit(GENERAL_ERROR);
                 }
 
                 opts.c = 1;
@@ -634,9 +588,7 @@ int main(int argc, char *argv[]) {
 
     cwd = NULL;
 
-    if (switch_store_cwd() == -1) {
-        panic_exit(254);
-    }
+    switch_store_cwd();
 
     if (opts.c == 1) {
         return parse_string_loop(opts.c_val);
@@ -648,7 +600,7 @@ int main(int argc, char *argv[]) {
     }
 }
 
-void use_prefix() {
+void use_prefix(void) {
     if (!is_interactive) {
         fprintf(stderr, "Line %zu: ", lineno);
     }
