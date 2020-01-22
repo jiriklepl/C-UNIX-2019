@@ -106,12 +106,22 @@ command_sequence:
 void run_pipeline(void) {
     queue_union *entry;
 
+    /*
+     * argv points to compact array of program arguments
+     * each terminated with a NULL entry
+     * argv[0] is also NULL
+     */
     char **argv;
+
+    /*
+     * array of structs describing redirections (raw)
+     */
     struct prgv_t *prgv;
 
     size_t argc = 0;
     size_t prgc = 1;
 
+    // this determines how many arguments and programs are in the pipeline
     STAILQ_FOREACH(entry, &queue_head, _next) {
         switch (entry->_type) {
             case QU_STRING:
@@ -147,32 +157,35 @@ void run_pipeline(void) {
 
     argv[0] = NULL;
 
-    STAILQ_FOREACH(entry, &queue_head, _next) {
+    /*
+     * this fills both argv and prgv arrays
+     * and epties the queue
+     */
+    while (!STAILQ_EMPTY(&queue_head)) {
+        queue_union *entry = STAILQ_FIRST(&queue_head);
+        STAILQ_REMOVE_HEAD(&queue_head, _next);
+
         switch (entry->_type) {
             case QU_STRING:
                 argv[argc + prgc] = entry->_val._str;
-                entry->_val._str = NULL;
                 ++argc;
             break;
 
             case QU_RARROW:
                 free(prgv[prgc]._out);
                 prgv[prgc]._out = entry->_val._str;
-                entry->_val._str = NULL;
                 prgv[prgc]._append = false;
             break;
 
             case QU_DRARROW:
                 free(prgv[prgc]._out);
                 prgv[prgc]._out = entry->_val._str;
-                entry->_val._str = NULL;
                 prgv[prgc]._append = true;
             break;
 
             case QU_LARROW:
                 free(prgv[prgc]._in);
                 prgv[prgc]._in = entry->_val._str;
-                entry->_val._str = NULL;
             break;
 
             case QU_PIPE:
@@ -183,6 +196,8 @@ void run_pipeline(void) {
             case QU_EMPTY:
             break;
         }
+
+        free(entry);
     }
 
     argv[argc + prgc] = NULL;
