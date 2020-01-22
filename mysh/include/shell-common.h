@@ -29,6 +29,10 @@
 
 int yyerror(const char *);
 
+enum {
+    GENERAL_ERROR = 254
+};
+
 typedef struct queue_union {
     enum qu_type {
         QU_EMPTY,
