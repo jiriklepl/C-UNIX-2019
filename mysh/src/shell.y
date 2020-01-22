@@ -212,7 +212,10 @@ void run_pipeline(void) {
     pid_t cpid;
 
     while (prgc != 0) {
-        // skip the topmost null on argv array and find the next one
+        /*
+         * find the first null on the argv array below argc + prgc
+         * and set argc accordingly so argc + prgc points to that
+         */
         while (argv[argc + prgc] != NULL) {
             --argc;
         }
