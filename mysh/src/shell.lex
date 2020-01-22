@@ -58,17 +58,6 @@ WS              [ \t\r]
 "|"                               return PIPE;
 ";"                               return SEMICOLON;
 
-"&"                               return AMPERSAND;
-    /* NOT SUPPORTED, JUST PA[RS]SING */
-"$"                               return DOLLAR;
-    /* NOT SUPPORTED, JUST PA[RS]SING */
-
-"{"                               return LBRACE;
-    /* NOT SUPPORTED, JUST PA[RS]SING */
-
-"}"                               return RBRACE;
-    /* NOT SUPPORTED, JUST PA[RS]SING */
-
 {WS}+                             /* whitespace */
 
 \n                                return NLINE;
