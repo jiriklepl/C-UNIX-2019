@@ -22,7 +22,7 @@ WS              [ \t\r]
 
 #.*                               /* comment */
 
-[A-Za-z0-9/\-.]+ {
+[A-Za-z0-9/\-._]+ {
     set_transfere_string(
         &yylval,
         yytext,
