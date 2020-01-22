@@ -36,7 +36,7 @@ COMPILE = $(CC) -c $(C_FLAGS) -I$(INCLUDE) -o$@ $<
 LINK_COMMAND = $(CC) $(C_FLAGS) -o$@ $^ $(LIBS)
 
 
-.PHONY: all clean run debug release
+.PHONY: all clean run debug release queue_test
 
 all: release
 
@@ -51,6 +51,9 @@ clean:
 
 run: all
 	$(BIN)/$(EXECUTABLE)
+
+queue_test: release queue_test.mysh
+	time valgrind --leak-check=full bin/mysh queue_test.mysh
 
 
 $(BIN):
