@@ -516,12 +516,13 @@ int parse_loop(void) {
         char *prompt = NULL;
         int len = snprintf(NULL, 0, MYSH_PROMPT, cwd);
 
-        if (len < 0) {
-            panic_exit(254);
-        } else if ((prompt = malloc(len + 1))) {
-            snprintf(prompt, len + 1, MYSH_PROMPT, cwd);
+        if (
+            len < 0 ||
+            (prompt = malloc(len + 1)) == NULL
+        ) {
+            exit(GENERAL_ERROR);
         } else {
-            panic_exit(254);
+            snprintf(prompt, len + 1, MYSH_PROMPT, cwd);
         }
 
         input_line = readline(prompt);
