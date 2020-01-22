@@ -653,31 +653,21 @@ void use_prefix() {
     }
 }
 
-int switch_store_cwd() {
-    char *new_cwd;
+void switch_store_cwd(void) {
+    char *new_cwd = NULL;
 
-    if (cwd == NULL) {
-        if (unsetenv("OLDPWD") == -1) {
-            return -1;
-        }
-    } else if (setenv("OLDPWD", cwd, 1) == -1) {
-        return -1;
-    }
-
-    if ((new_cwd = getcwd(NULL, 0)) == NULL) {
-        return -1;
-    }
-
-    if (setenv("PWD", new_cwd, 1) == -1) {
-        free(new_cwd);
-
-        return -1;
+    if (((cwd == NULL)
+            ? unsetenv("OLDPWD")
+            : setenv("OLDPWD", cwd, 1)
+        ) == -1 ||
+        (new_cwd = getcwd(NULL, 0)) == NULL ||
+        setenv("PWD", new_cwd, 1) == -1
+    ) {
+        exit(GENERAL_ERROR);
     }
 
     free(new_cwd);
     cwd = getenv("PWD");
-
-    return 0;
 }
 
 int yyerror(const char *s) {
