@@ -85,16 +85,20 @@ closed_request:
     | request NLINE { ++lineno; }
     ;
 
-command_bit:
-    STRING  { do_enqueue(QU_STRING); }
-    | RARROW STRING  { do_enqueue(QU_RARROW); }
-    | DRARROW STRING  { do_enqueue(QU_DRARROW); }
-    | LARROW STRING  { do_enqueue(QU_LARROW); }
+redirection:
+    RARROW STRING { do_enqueue(QU_RARROW); }
+    | DRARROW STRING { do_enqueue(QU_DRARROW); }
+    | LARROW STRING { do_enqueue(QU_LARROW); }
+    ;
+
+redirection_list:
+    | redirection_list redirection
     ;
 
 command:
-    command_bit
-    | command command_bit
+    redirection_list STRING { do_enqueue(QU_STRING); }
+    | command STRING { do_enqueue(QU_STRING); }
+    | command redirection
     ;
 
 command_sequence:
