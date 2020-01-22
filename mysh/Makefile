@@ -53,7 +53,7 @@ run: all
 	$(BIN)/$(EXECUTABLE)
 
 queue_test: release queue_test.mysh
-	time valgrind --leak-check=full bin/mysh queue_test.mysh
+	time valgrind --leak-check=full $(BIN)/$(EXECUTABLE) queue_test.mysh
 
 
 $(BIN):
