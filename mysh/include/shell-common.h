@@ -27,12 +27,14 @@
 #define YY_DECL int yylex(void)
 #define MYSH_PROMPT "mysh:%s$ "
 
-int yyerror(const char *);
-
 enum {
     GENERAL_ERROR = 254
 };
 
+/*
+ * this struct is used as a storage entry in the queue
+ * which represents a single pipeline
+ */
 typedef struct queue_union {
     enum qu_type {
         QU_EMPTY,
@@ -49,10 +51,6 @@ typedef struct queue_union {
 
     STAILQ_ENTRY(queue_union) _next;
 } queue_union;
-
-STAILQ_HEAD(string_queue, queue_union) queue_head;
-
-void clear_queue(void);
 
 /*
  * this struct is for transfering data between the lexer and
@@ -81,10 +79,15 @@ void set_transfere_string(
     char *beg,
     size_t len);
 
+int yyerror(const char *);
+void clear_queue(void);
 queue_union *enqueue_new(transfere_union *from, enum qu_type type);
+void panic_exit(int);
 
 YY_DECL;
 
-void panic_exit(int);
+extern size_t lineno;
+extern YYSTYPE yylval;
+extern STAILQ_HEAD(string_queue, queue_union) queue_head;
 
 #endif  // SHELL_COMMON_H_
