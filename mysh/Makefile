@@ -31,7 +31,7 @@ OBJ_FILES := $(patsubst $(SRC)/%.c,$(TEMP)/%.o,$(patsubst $(TEMP)/%.c,$(TEMP)/%.
 
 LIBS := -lreadline
 
-COMPILE = $(CC) -c $(C_FLAGS) -I$(INCLUDE) -o$@ $<
+COMPILE = $(CC) -c $(C_FLAGS) -I$(INCLUDE) -I$(TEMP) -o$@ $<
 
 LINK_COMMAND = $(CC) $(C_FLAGS) -o$@ $^ $(LIBS)
 
