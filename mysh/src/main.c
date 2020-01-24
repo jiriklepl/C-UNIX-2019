@@ -268,13 +268,6 @@ void run_pipeline(void) {
     redisplay = 1;
 }
 
-void do_enqueue(enum tu_type type) {
-    if (enqueue_new(&yylval, type) == NULL) {
-        perror("queue error");
-        exit(GENERAL_ERROR);
-    }
-}
-
 void run_cd(char *argv[]) {
     if (argv[1] == NULL) {
         // cd home
