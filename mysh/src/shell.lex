@@ -1,9 +1,5 @@
 %{
-    #include "shell-common.h"
     #include "shell.tab.h"
-
-    extern YYSTYPE yylval;
-    extern size_t lineno;
 %}
 
 /* OPTIONs here */
