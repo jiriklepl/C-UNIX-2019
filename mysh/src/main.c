@@ -1,6 +1,17 @@
 #include "shell-common.h"
 #include "shell.tab.h"
 
+struct prgv_t {
+    /*
+        * output and input, NULL represents there is no redirection
+        * (pipe is still considered NULL)
+        */
+    char *_out, *_in;
+
+    // true if >>, false if >, nondeterministic otherwise
+    bool _append;
+};
+
 extern FILE *yyin;
 
 YYSTYPE yylval;
@@ -31,17 +42,6 @@ int parse_loop(void);
 
 int parse_string_loop(char *from_string);
 int parse_file_loop(char *fname);
-
-struct prgv_t {
-    /*
-        * output and input, NULL represents there is no redirection
-        * (pipe is still considered NULL)
-        */
-    char *_out, *_in;
-
-    // true if >>, false if >, nondeterministic otherwise
-    bool _append;
-};
 
 void open_child(
     char *argv[],
@@ -182,8 +182,7 @@ void run_pipeline(void) {
                 if (
                     ((pd[2] != -1) && (
                         dup2(pd[2], STDOUT_FILENO) == -1 ||
-                        close(pd[2]) == -1
-                    )) ||
+                        close(pd[2]) == -1)) ||
                     dup2(pd[0], STDIN_FILENO) == -1 ||
                     close(pd[0]) == -1 ||
                     close(pd[1]) == -1
@@ -569,8 +568,7 @@ void switch_store_cwd(void) {
 
     if (((cwd == NULL)
             ? unsetenv("OLDPWD")
-            : setenv("OLDPWD", cwd, 1)
-        ) == -1 ||
+            : setenv("OLDPWD", cwd, 1)) == -1 ||
         (new_cwd = getcwd(NULL, 0)) == NULL ||
         setenv("PWD", new_cwd, 1) == -1
     ) {
@@ -583,7 +581,7 @@ void switch_store_cwd(void) {
 
 int yyerror(const char *s) {
     use_prefix();
-	fprintf(stderr, "%s\n", s);
+    fprintf(stderr, "%s\n", s);
 
     return 127;
 }
