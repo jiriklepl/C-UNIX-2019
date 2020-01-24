@@ -25,6 +25,10 @@
 			"${workspaceFolder}/mysh/include"
 		],
 		"c-cpp-flylint.clang.language": "C",
+		"cpplint.lintMode": "workspace",
+		"cpplint.filters": [
+			"-readability/cast"
+		],
 		"files.trimTrailingWhitespace": true,
 		"files.insertFinalNewline": true,
 	}
