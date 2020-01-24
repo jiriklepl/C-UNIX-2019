@@ -7,11 +7,12 @@
         "cpplint",
         "flylint",
         "jiriklepl",
+        "prgc",
         "prgv",
         "yyerror",
         "yyin",
         "yylex",
-        "yylval"
-    ],
-    "C_Cpp.default.cStandard": "c11"
+        "yylval",
+        "yyparse"
+    ]
 }
