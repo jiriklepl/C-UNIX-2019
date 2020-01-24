@@ -3,12 +3,14 @@
         "DRARROW",
         "MYSH",
         "NSWI",
+        "cppcheck",
         "cpplint",
         "flylint",
         "jiriklepl",
-        "yyerror",
-        "yylex",
         "prgv",
+        "yyerror",
+        "yyin",
+        "yylex",
         "yylval"
     ],
     "C_Cpp.default.cStandard": "c11"
