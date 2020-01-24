@@ -19,7 +19,6 @@
 }
 
 %code {
-    void do_enqueue(enum tu_type type);
     void run_pipeline(void);
 }
 
