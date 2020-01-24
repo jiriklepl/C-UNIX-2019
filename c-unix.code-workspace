@@ -24,6 +24,7 @@
 		"c-cpp-flylint.clang.includePaths": [
 			"${workspaceFolder}/mysh/include"
 		],
+		"c-cpp-flylint.clang.language": "C",
 		"files.trimTrailingWhitespace": true,
 		"files.insertFinalNewline": true,
 	}
