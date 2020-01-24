@@ -22,11 +22,12 @@ void clear_queue() {
     }
 }
 
-queue_union *enqueue_new(transfere_union *from, enum qu_type type) {
+void enqueue_new(enum qu_type type) {
     queue_union *entry;
 
     if ((entry = malloc(sizeof(queue_union))) == NULL) {
-        return NULL;
+        perror("queue error");
+        exit(GENERAL_ERROR);
     }
 
     switch (entry->_type = type) {
@@ -34,18 +35,17 @@ queue_union *enqueue_new(transfere_union *from, enum qu_type type) {
         case QU_RARROW:
         case QU_DRARROW:
         case QU_LARROW:
-            if ((entry->_val._str = malloc(from->_val._str._len + 1)) == NULL) {
-                free(entry);
-
-                return NULL;
+            if ((entry->_val._str = malloc(yylval._val._str._len + 1)) == NULL) {
+                perror("queue error");
+                exit(GENERAL_ERROR);
             }
 
             memcpy(
                 entry->_val._str,
-                from->_val._str._beg,
-                from->_val._str._len);
+                yylval._val._str._beg,
+                yylval._val._str._len);
 
-            entry->_val._str[from->_val._str._len] = '\0';
+            entry->_val._str[yylval._val._str._len] = '\0';
         break;
 
         case QU_EMPTY:
@@ -54,25 +54,6 @@ queue_union *enqueue_new(transfere_union *from, enum qu_type type) {
     }
 
     STAILQ_INSERT_TAIL(&queue_head, entry, _next);
-
-    return entry;
-}
-
-void move_transfere_union(
-    transfere_union *from,
-    transfere_union *to
-) {
-    switch (to->_type = from->_type) {
-        case TU_STRING:
-            to->_val._str._beg = from->_val._str._beg;
-            to->_val._str._len = from->_val._str._len;
-        break;
-
-        case TU_EMPTY:
-        break;
-    }
-
-    from->_type = TU_EMPTY;
 }
 
 void set_transfere_string(

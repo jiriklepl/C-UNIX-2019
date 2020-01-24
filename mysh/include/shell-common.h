@@ -70,10 +70,6 @@ typedef struct transfere_union {
     } _val;
 } transfere_union;
 
-void move_transfere_union(
-    transfere_union *from,
-    transfere_union *to);
-
 void set_transfere_string(
     transfere_union *tu_val,
     char *beg,
@@ -81,7 +77,7 @@ void set_transfere_string(
 
 int yyerror(const char *);
 void clear_queue(void);
-queue_union *enqueue_new(transfere_union *from, enum qu_type type);
+void enqueue_new(enum qu_type type);
 void panic_exit(int);
 
 YY_DECL;
