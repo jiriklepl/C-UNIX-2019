@@ -35,7 +35,9 @@ void enqueue_new(enum qu_type type) {
         case QU_RARROW:
         case QU_DRARROW:
         case QU_LARROW:
-            if ((entry->_val._str = malloc(yylval._val._str._len + 1)) == NULL) {
+            if (
+                (entry->_val._str = malloc(yylval._val._str._len + 1)) == NULL
+            ) {
                 perror("queue error");
                 exit(GENERAL_ERROR);
             }
