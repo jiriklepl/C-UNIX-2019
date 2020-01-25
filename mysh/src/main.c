@@ -212,6 +212,9 @@ void run_pipeline(void) {
         --prgc;
     }
 
+    // the first command has at least one argument (or parse error)
+    assert(*(argv + 1) != NULL);
+
     if (
         strcmp(*(argv + 1), "cd") != 0 &&
         strcmp(*(argv + 1), "exit") != 0
@@ -300,10 +303,14 @@ void run_cd(char *argv[]) {
     }
 }
 
+// argv points to the first argument, prgv to the configuration struct
 void open_child(
     char *argv[],
     struct prgv_t *prgv
 ) {
+    assert(argv != NULL);
+    assert(*argv != NULL);
+
     if (strcmp(*argv, "cd") == 0) {
         run_cd(argv);
     } else if (strcmp(*argv, "exit") == 0) {
@@ -508,7 +515,7 @@ int main(int argc, char *argv[]) {
     struct {
         int c;
         char *c_val;
-    } opts = { .c = 0 };
+    } opts = { .c = 0, .c_val = NULL };
 
     int opt;
 
@@ -516,6 +523,10 @@ int main(int argc, char *argv[]) {
         switch (opt) {
             case 'c': {
                 size_t len;
+
+                if (opts.c_val != NULL) {
+                    free(opts.c_val);
+                }
 
                 if (
                     (len = strlen(optarg)) > 0 &&
