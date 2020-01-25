@@ -526,6 +526,7 @@ int main(int argc, char *argv[]) {
 
                 if (opts.c_val != NULL) {
                     free(opts.c_val);
+                    opts.c_val = NULL;
                 }
 
                 if (
