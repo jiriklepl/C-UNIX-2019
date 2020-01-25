@@ -187,7 +187,7 @@ void run_pipeline(void) {
                     close(pd[0]) == -1 ||
                     close(pd[1]) == -1
                 ) {
-                    perror("fork");
+                    perror("pipe");
                     exit(GENERAL_ERROR);
                 } else {
                     open_child(argv + argc + prgc + 1, prgv + prgc);
@@ -203,7 +203,6 @@ void run_pipeline(void) {
                 if (pd[2] != -1) {
                     close(pd[2]);
                 }
-
 
                 pd[2] = pd[1];
             break;
@@ -221,8 +220,11 @@ void run_pipeline(void) {
     ) {
         cpid = fork();
     } else {
-        close(pd[2]);
-        pd[2] = -1;
+        if (pd[2] != -1) {
+            close(pd[2]);
+            pd[2] = -1;
+        }
+
         cpid = 0;
     }
 
@@ -238,7 +240,7 @@ void run_pipeline(void) {
                     dup2(pd[2], STDOUT_FILENO) == -1 ||
                     close(pd[2]) == -1
                 ) {
-                    perror("fork");
+                    perror("pipe");
                     exit(GENERAL_ERROR);
                 }
             }
