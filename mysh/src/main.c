@@ -3,13 +3,19 @@
 
 struct prgv_t {
     /*
-        * output and input, NULL represents there is no redirection
-        * (pipe is still considered NULL)
-        */
+     * output and input, NULL represents there is no redirection
+     * (pipe is still considered NULL)
+     */
     char *_out, *_in;
 
     // true if >>, false if >, nondeterministic otherwise
     bool _append;
+
+    /*
+     * PID of the process, set but the parent (shell)
+     * here just for convenience
+     */
+    pid_t _pid;
 };
 
 extern FILE *yyin;
@@ -19,7 +25,7 @@ YYSTYPE yylval;
 struct string_queue queue_head;
 size_t lineno = 1;
 
-static struct sigaction int_action, chld_action;
+static struct sigaction int_action;
 
 static int last_return_value;
 static int redisplay = 1;
@@ -35,7 +41,6 @@ void end_lexical_scan(void);
 void set_input_string(const char *);
 
 void intHandler(int sig);
-void chldHandler(int sig);
 
 int parse_line(void);
 int parse_loop(void);
@@ -209,6 +214,7 @@ void run_pipeline(void) {
             break;
 
             default:
+                prgv[prgc]._pid = cpid;
                 close(pd[0]);
 
                 if (pd[2] != -1) {
@@ -247,7 +253,9 @@ void run_pipeline(void) {
 
         case 0:
             if (pd[2] != -1) {
-                if (
+                if (prgv[prgc]._out != NULL) {
+                    close(pd[2]);
+                } else if (
                     dup2(pd[2], STDOUT_FILENO) == -1 ||
                     close(pd[2]) == -1
                 ) {
@@ -259,14 +267,42 @@ void run_pipeline(void) {
             open_child(argv + 1, prgv + prgc);
         break;
 
-        default:
+        default: {
+            const char *message = "";
+            int s_code = 127;
+            int wstatus;
+
+            prgv[0]._pid = cpid;
+            redisplay = 0;
+
             if (pd[2] != -1) {
                 close(pd[2]);
             }
 
-            redisplay = 0;
-            pause();
-        break;
+            for (size_t i = 0; i < actual_prgc; ++i) {
+                while (waitpid(prgv[i]._pid, &wstatus, 0) == -1) {
+                    if (errno != EINTR) {
+                        perror("pipe");
+                        exit(GENERAL_ERROR);
+                    }
+                }
+
+                if (WIFEXITED(wstatus)) {
+                    last_return_value = WEXITSTATUS(wstatus);
+
+                    continue;
+                } else if (WIFSIGNALED(wstatus)) {
+                    message = "Killed by signal ";
+                    s_code = WTERMSIG(wstatus);
+                } else if (WIFSTOPPED(wstatus)) {
+                    message = "Stopped by signal ";
+                    s_code = WSTOPSIG(wstatus);
+                }
+
+                last_return_value = s_code + 128;
+                fprintf(stderr, "%s%d\n", message, s_code);
+            }
+        } break;
     }
 
     for (size_t i = 0; i < actual_argc + actual_prgc; ++i) {
@@ -398,50 +434,6 @@ void intHandler(int sig) {
     }
 }
 
-void chldHandler(int sig) {
-    pid_t w;
-    int wstatus;
-
-    assert(SIGCHLD == sig);
-
-    while ((w = wait(&wstatus)) != -1) {
-        int s_code;
-        char s_chars[22];
-        char *message;
-        char *beg;
-        size_t length = 1;
-        s_chars[sizeof(s_chars) - 1] = '\n';
-
-        if (WIFEXITED(wstatus)) {
-            last_return_value = WEXITSTATUS(wstatus);
-
-            continue;
-        } else if (WIFSIGNALED(wstatus)) {
-            message = "Killed by signal ";
-            s_code = WTERMSIG(wstatus);
-        } else if (WIFSTOPPED(wstatus)) {
-            message = "Stopped by signal ";
-            s_code = WSTOPSIG(wstatus);
-        } else {
-            message = "";
-            s_code = 127;
-        }
-
-        last_return_value = s_code + 128;
-
-        do {
-            s_chars[sizeof(s_chars) - ++length] = (char)('0' + (s_code % 10));
-        } while ((s_code /= 10) != 0);
-
-        beg = s_chars + sizeof(s_chars) - length;
-        beg -= (length = strlen(message));
-
-        memcpy(beg, message, length);
-
-        write(STDERR_FILENO, beg, s_chars + sizeof(s_chars) - beg);
-    }
-}
-
 int parse_loop(void) {
     while (1) {
         char *prompt = NULL;
@@ -560,11 +552,6 @@ int main(int argc, char *argv[]) {
     sigemptyset(&int_action.sa_mask);
     int_action.sa_flags = 0;
     sigaction(SIGINT, &int_action, NULL);
-
-    chld_action.sa_handler = chldHandler;
-    sigemptyset(&chld_action.sa_mask);
-    chld_action.sa_flags = 0;
-    sigaction(SIGCHLD, &chld_action, NULL);
 
     STAILQ_INIT(&queue_head);
 
