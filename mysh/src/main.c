@@ -179,22 +179,33 @@ void run_pipeline(void) {
             break;
 
             case 0:
-                if (
-                    ((pd[2] != -1) && (
+                if (pd[2] != -1) {
+                    if (prgv[prgc]._out != NULL) {
+                        close(pd[2]);
+                    } else if (
                         dup2(pd[2], STDOUT_FILENO) == -1 ||
-                        close(pd[2]) == -1)) ||
+                        close(pd[2]) == -1
+                    ) {
+                        perror("pipe");
+                        exit(GENERAL_ERROR);
+                    }
+                }
+
+                if (prgv[prgc]._in != NULL) {
+                    close(pd[0]);
+                } else if (
                     dup2(pd[0], STDIN_FILENO) == -1 ||
-                    close(pd[0]) == -1 ||
-                    close(pd[1]) == -1
+                    close(pd[0]) == -1
                 ) {
                     perror("pipe");
                     exit(GENERAL_ERROR);
-                } else {
-                    open_child(argv + argc + prgc + 1, prgv + prgc);
-
-                    // we get here iff first argument here is either cd or exit
-                    exit(last_return_value);
                 }
+
+                close(pd[1]);
+                open_child(argv + argc + prgc + 1, prgv + prgc);
+
+                // we get here iff first argument here is either cd or exit
+                exit(last_return_value);
             break;
 
             default:
