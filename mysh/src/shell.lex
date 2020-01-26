@@ -27,8 +27,7 @@ WS              [ \t\r]
     return STRING;
 }
 
-
-(\"([^"]|\\\")*\")+ {
+\"([^"]|\\\")*\" {
     set_transfere_string(
         &yylval,
         yytext + 1,
@@ -37,8 +36,7 @@ WS              [ \t\r]
     return STRING;
 }
 
-
-(\'([^']|\\\')*\')+ {
+\'([^']|\\\')*\' {
     set_transfere_string(
         &yylval,
         yytext + 1,
