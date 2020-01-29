@@ -14,15 +14,12 @@
 
 %define parse.error verbose
 
-%code requires {
-    #include "shell-common.h"
-}
-
-%code {
-    void run_pipeline(void);
-}
-
 %start request
+
+%{
+    #include "shell-common.h"
+    void run_pipeline(void);
+%}
 
 %%
 
@@ -42,9 +39,9 @@ closed_request:
     ;
 
 redirection:
-    RARROW STRING { enqueue_new(QU_RARROW); }
-    | DRARROW STRING { enqueue_new(QU_DRARROW); }
-    | LARROW STRING { enqueue_new(QU_LARROW); }
+    RARROW STRING { enqueue_new(yylval, QU_RARROW); }
+    | DRARROW STRING { enqueue_new(yylval, QU_DRARROW); }
+    | LARROW STRING { enqueue_new(yylval, QU_LARROW); }
     ;
 
 redirection_list:
@@ -52,13 +49,13 @@ redirection_list:
     ;
 
 command:
-    redirection_list STRING { enqueue_new(QU_STRING); }
-    | command STRING { enqueue_new(QU_STRING); }
+    redirection_list STRING { enqueue_new(yylval, QU_STRING); }
+    | command STRING { enqueue_new(yylval, QU_STRING); }
     | command redirection
     ;
 
 command_sequence:
     { clear_queue(); } command
-    | command_sequence PIPE { enqueue_new(QU_PIPE); } command
+    | command_sequence PIPE { enqueue_new(yylval, QU_PIPE); } command
     ;
 %%

@@ -19,7 +19,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include <linux/limits.h>
+#include <limits.h>
 
 #include <readline/history.h>
 #include <readline/readline.h>
@@ -78,13 +78,12 @@ void set_transfere_string(
 
 int yyerror(const char *);
 void clear_queue(void);
-void enqueue_new(enum qu_type type);
+void enqueue_new(transfere_union value, enum qu_type type);
 void panic_exit(int);
 
 YY_DECL;
 
 extern size_t lineno;
-extern YYSTYPE yylval;
 extern STAILQ_HEAD(string_queue, queue_union) queue_head;
 
 #endif  // SHELL_COMMON_H_

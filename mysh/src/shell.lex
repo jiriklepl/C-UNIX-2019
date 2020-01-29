@@ -1,4 +1,5 @@
 %{
+    #include "shell-common.h"
     #include "shell.tab.h"
 %}
 

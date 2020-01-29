@@ -22,7 +22,10 @@ void clear_queue() {
     }
 }
 
-void enqueue_new(enum qu_type type) {
+void enqueue_new(
+    transfere_union value,
+    enum qu_type type
+) {
     queue_union *entry;
 
     if ((entry = malloc(sizeof(queue_union))) == NULL) {
@@ -36,7 +39,7 @@ void enqueue_new(enum qu_type type) {
         case QU_DRARROW:
         case QU_LARROW:
             if (
-                (entry->_val._str = malloc(yylval._val._str._len + 1)) == NULL
+                (entry->_val._str = malloc(value._val._str._len + 1)) == NULL
             ) {
                 perror("queue error");
                 exit(GENERAL_ERROR);
@@ -44,10 +47,10 @@ void enqueue_new(enum qu_type type) {
 
             memcpy(
                 entry->_val._str,
-                yylval._val._str._beg,
-                yylval._val._str._len);
+                value._val._str._beg,
+                value._val._str._len);
 
-            entry->_val._str[yylval._val._str._len] = '\0';
+            entry->_val._str[value._val._str._len] = '\0';
         break;
 
         case QU_EMPTY:

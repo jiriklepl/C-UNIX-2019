@@ -429,7 +429,7 @@ void intHandler(int sig) {
         rl_point = 0;
         rl_delete_text(0, rl_end);
         rl_reset_line_state();
-        printf("\n");
+        write(STDOUT_FILENO, "\n", 1);
         rl_redisplay();
     }
 }
